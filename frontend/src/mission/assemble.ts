@@ -33,7 +33,8 @@ export function eventRuns(days: readonly boolean[]): EventRun[] {
   return runs;
 }
 
-const holdOf = (c: Candidate): number => (c.kind === 'drift' ? GROUPING_HOLD_DAYS : 0);
+/** Days a detection waits before its routing is decided (drifts wait for the grouping check). */
+export const holdOf = (c: Candidate): number => (c.kind === 'drift' ? GROUPING_HOLD_DAYS : 0);
 
 /** Environmental alert id covering a personal radiation detection, or null. */
 export function coveringEnvironmentalEvent(c: Candidate, runs: readonly EventRun[]): string | null {

@@ -1,0 +1,255 @@
+/*
+ * Mission simulation view. Follows the dashboard's Swiss direction: hairline rules, one sans
+ * family, no status colour. Signal categories are told apart by text first and by a monochrome
+ * marker second, never by colour alone.
+ */
+
+.mission {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.mission__title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.mission__notice {
+  margin-top: var(--space-2);
+  max-width: 48rem;
+}
+
+.mission__body,
+.mission__main {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.mission-note {
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+}
+
+/* ---- Controls ---- */
+
+.mission-controls__day {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+}
+
+.mission-controls__day .muted {
+  font-size: var(--text-lg);
+  font-weight: 400;
+}
+
+.mission-controls__phase {
+  margin-bottom: var(--space-3);
+}
+
+.mission-controls__row {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.mission-controls__timeline input {
+  width: 100%;
+  min-height: var(--target);
+  accent-color: var(--ink);
+}
+
+.mission-controls__events .muted {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+.mission-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+}
+
+.mission-events .button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+/* ---- Crew grid ---- */
+
+.crew-grid__scroll {
+  overflow-x: auto;
+}
+
+.crew-grid table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.crew-grid th {
+  text-align: left;
+  font-weight: 700;
+  padding: var(--space-1) var(--space-2) var(--space-2) 0;
+  vertical-align: bottom;
+}
+
+.crew-grid td {
+  padding: 2px;
+}
+
+.crew-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crew-cell:hover,
+.crew-cell[aria-pressed='true'] {
+  border-color: var(--ink);
+}
+
+.crew-cell[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.crew-cell__marker {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ink);
+}
+
+.crew-cell[data-state='baseline_building'],
+.crew-cell[data-state='no_data'] {
+  color: var(--muted);
+}
+
+.crew-cell[data-state='baseline_building'] .crew-cell__marker,
+.crew-cell[data-state='no_data'] .crew-cell__marker {
+  border-style: dashed;
+  border-color: var(--muted);
+}
+
+.crew-cell[data-state='short_term_deviation'] .crew-cell__marker {
+  border-width: 3px;
+}
+
+.crew-cell[data-state='sustained_deviation'] .crew-cell__marker {
+  background: linear-gradient(to top, var(--ink) 50%, transparent 50%);
+}
+
+.crew-cell[data-state='multiple_signals'] .crew-cell__marker {
+  background: repeating-linear-gradient(45deg, var(--ink) 0 2px, transparent 2px 4px);
+}
+
+.crew-cell[data-state='requires_human_review'] {
+  font-weight: 700;
+}
+
+.crew-cell[data-state='requires_human_review'] .crew-cell__marker {
+  background: var(--ink);
+}
+
+/* ---- Measurement details ---- */
+
+.measurement__state {
+  margin-bottom: var(--space-2);
+}
+
+.measurement__latest {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+/* ---- Environment ---- */
+
+.mission-environment__event {
+  border-left: 4px solid var(--ink);
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  font-weight: 700;
+}
+
+/* ---- Event feed ---- */
+
+.event-feed__subheading {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.event-feed__list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+  max-height: 32rem;
+  overflow-y: auto;
+}
+
+.event,
+.detection {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.event__meta {
+  font-size: var(--text-sm);
+}
+
+.event__category {
+  font-weight: 700;
+}
+
+.event__title {
+  font-weight: 700;
+}
+
+.event__text,
+.event__delay,
+.event__follow {
+  font-size: var(--text-sm);
+}
+
+.event__delay {
+  color: var(--muted);
+}
+
+.event--waiting .event__title {
+  font-weight: 400;
+}
+
+@media (min-width: 768px) {
+  .mission-controls__row {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    align-items: end;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mission__body {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+  }
+}

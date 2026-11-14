@@ -13,7 +13,13 @@ import { detectEnvironmentalEventDays, findCandidates } from './detections';
 import type { Candidate } from './detections';
 import { envZScores, findGroups } from './crewVsEnv';
 import { buildEnvironmentalAlert, buildGroupAlert, buildPersonalAlerts } from './closedLoop';
-import { coveringEnvironmentalEvent, coveringGroup, eventRuns, groupCloseDay } from './assemble';
+import {
+  coveringEnvironmentalEvent,
+  coveringGroup,
+  eventRuns,
+  groupCloseDay,
+  holdOf,
+} from './assemble';
 import { applyBudget, DEFAULT_BUDGET } from './budget';
 import { buildGrid } from './grid';
 import { labelAlert } from './label';
@@ -33,6 +39,7 @@ const record = (
   direction: c.direction,
   disposition,
   alertId,
+  decisionDay: c.day + holdOf(c),
 });
 
 export function runMission(seed: number): Mission {

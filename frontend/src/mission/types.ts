@@ -164,6 +164,41 @@ export interface DetectionRecord {
   disposition: Disposition;
   /** alert that shows or covers this detection */
   alertId: string | null;
+  /** first day on which the disposition is known (detection day + grouping hold for drifts) */
+  decisionDay: number;
+}
+
+/** What a viewer can know about a detection on the snapshot day. */
+export type DetectionStatus =
+  | 'pending_grouping_check'
+  | 'queued'
+  | 'notified'
+  | 'grouped'
+  | 'merged_into_open_alert'
+  | 'covered_by_environmental_event';
+
+export interface DetectionView extends DetectionRecord {
+  status: DetectionStatus;
+}
+
+/** One series as known on a given day (nothing after that day). */
+export interface CellDetail {
+  synthetic: true;
+  crew: CrewId;
+  domain: DomainId;
+  day: number;
+  state: CellState;
+  /** values of days 1..day */
+  values: number[];
+  /** null until day 31: the baseline is only complete and frozen after day 30 */
+  baseline: Baseline | null;
+  /** baseline days collected so far (max 30) */
+  baselineDaysCollected: number;
+  value: number | null;
+  z: number | null;
+  ewma: number | null;
+  cusumHi: number | null;
+  cusumLo: number | null;
 }
 
 export interface Mission {
@@ -212,8 +247,10 @@ export interface Snapshot {
   grid: CellState[][];
   /** shown alerts, newest first */
   alerts: AlertView[];
-  /** detected but deferred by the alert budget; still inspectable */
+  /** detected but deferred by the grouping hold or the alert budget; still inspectable */
   queue: AlertView[];
+  /** raw detections up to this day, newest first, with what is known about them */
+  detections: DetectionView[];
   counters: { total: number; falseAlarms: number; deferred: number };
   environment: {
     particleEventActive: boolean;

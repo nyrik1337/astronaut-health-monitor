@@ -10,6 +10,9 @@ import type {
   Alert,
   AlertView,
   CrewId,
+  DetectionRecord,
+  DetectionStatus,
+  DetectionView,
   DomainId,
   Mission,
   MissionMeta,
@@ -18,11 +21,10 @@ import type {
 } from './types';
 import { flaggedText } from './explain';
 import { CHECK_EVERY_DAYS } from './closedLoop';
+import { clampDay } from './guards';
 import { REVIEW_ORDER } from './signals';
 
 const BYTES_PER_KB = 1024;
-const clampDay = (day: number): number =>
-  Number.isFinite(day) ? Math.max(1, Math.min(MISSION_DAYS, Math.round(day))) : 1;
 const round = (v: number, decimals: number): number => {
   const f = 10 ** decimals;
   return Math.round(v * f) / f;
@@ -97,8 +99,23 @@ function packetAt(m: Mission, day: number, shown: readonly AlertView[]): Snapsho
   return { day, sizeKB: round(bytes / BYTES_PER_KB, 1), items };
 }
 
+/** Status of a detection on `day`: its routing is revealed only from its decision day on. */
+function statusAt(d: DetectionRecord, day: number, shown: ReadonlySet<string>): DetectionStatus {
+  if (day < d.decisionDay) return 'pending_grouping_check';
+  if (d.disposition !== 'alert') return d.disposition;
+  return d.alertId !== null && shown.has(d.alertId) ? 'notified' : 'queued';
+}
+
+function detectionsAt(m: Mission, day: number, shown: readonly AlertView[]): DetectionView[] {
+  const shownIds = new Set(shown.map((a) => a.id));
+  return m.detections
+    .filter((d) => d.day <= day)
+    .map((d) => ({ ...d, status: statusAt(d, day, shownIds) }))
+    .sort((a, b) => b.day - a.day || a.id.localeCompare(b.id));
+}
+
 export function snapshotAt(mission: Mission, dayIn: number): Snapshot {
-  const day = clampDay(dayIn);
+  const day = clampDay(dayIn, MISSION_DAYS);
   const detected = mission.alerts.filter((a) => a.detectedDay <= day);
   const alerts = detected
     .filter((a) => a.day <= day)
@@ -112,6 +129,7 @@ export function snapshotAt(mission: Mission, dayIn: number): Snapshot {
     grid: grid.map((row) => [...row]),
     alerts,
     queue,
+    detections: detectionsAt(mission, day, alerts),
     counters: {
       total: alerts.length,
       falseAlarms: alerts.filter((a) => a.falsePositive).length,
