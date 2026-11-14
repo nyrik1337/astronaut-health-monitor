@@ -1,11 +1,12 @@
 import { useRef, type KeyboardEvent } from 'react';
 import './viewTabs.css';
 
-export type ViewId = 'dashboard' | 'mission';
+export type ViewId = 'dashboard' | 'mission' | 'fatigue';
 
 export const VIEWS: readonly { readonly id: ViewId; readonly label: string }[] = [
   { id: 'dashboard', label: 'Vital signs dashboard' },
   { id: 'mission', label: 'Mission simulation (synthetic replay)' },
+  { id: 'fatigue', label: 'Fatigue evidence (experimental)' },
 ];
 
 export const tabId = (view: ViewId): string => `view-tab-${view}`;

@@ -23,13 +23,23 @@ const SYNTHETIC_DATA_NOTICE =
 
 /** The synthetic mission replay is a separate chunk, loaded the first time its view is opened. */
 const MissionView = lazy(() => import('./missionView/MissionView'));
+/** Evidence Navigator + CognitiveGuard, also loaded only when first opened. */
+const FatigueView = lazy(() => import('./fatigueView/FatigueView'));
+
+const SKIP_LINKS: Record<ViewId, { href: string; label: string }> = {
+  dashboard: { href: '#main', label: 'Skip to dashboard' },
+  mission: { href: '#mission', label: 'Skip to mission simulation' },
+  fatigue: { href: '#fatigue', label: 'Skip to fatigue evidence' },
+};
 
 export function App({ client = apiClient }: Props) {
   const [view, setView] = useState<ViewId>('dashboard');
-  const [missionOpened, setMissionOpened] = useState(false);
+  const [opened, setOpened] = useState<ReadonlySet<ViewId>>(() => new Set(['dashboard']));
+  const missionOpened = opened.has('mission');
+  const fatigueOpened = opened.has('fatigue');
   const selectView = (next: ViewId): void => {
     setView(next);
-    if (next === 'mission') setMissionOpened(true);
+    setOpened((previous) => (previous.has(next) ? previous : new Set([...previous, next])));
   };
   const demo = useDemoReadings();
   const health = useBackendHealth(client);
@@ -42,8 +52,8 @@ export function App({ client = apiClient }: Props) {
 
   return (
     <>
-      <a className="skip-link" href={view === 'dashboard' ? '#main' : '#mission'}>
-        {view === 'dashboard' ? 'Skip to dashboard' : 'Skip to mission simulation'}
+      <a className="skip-link" href={SKIP_LINKS[view].href}>
+        {SKIP_LINKS[view].label}
       </a>
       <header className="masthead">
         <div className="masthead__title">
@@ -110,6 +120,21 @@ export function App({ client = apiClient }: Props) {
           <main id="mission" className="layout" aria-labelledby="mission-heading">
             <Suspense fallback={<p>Loading the synthetic mission replay…</p>}>
               <MissionView />
+            </Suspense>
+          </main>
+        )}
+      </div>
+
+      <div
+        role="tabpanel"
+        id={panelId('fatigue')}
+        aria-labelledby={tabId('fatigue')}
+        hidden={view !== 'fatigue'}
+      >
+        {fatigueOpened && (
+          <main id="fatigue" className="layout" aria-labelledby="fatigue-heading">
+            <Suspense fallback={<p>Loading the fatigue evidence view…</p>}>
+              <FatigueView />
             </Suspense>
           </main>
         )}

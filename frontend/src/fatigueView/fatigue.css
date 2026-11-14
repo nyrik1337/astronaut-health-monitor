@@ -1,0 +1,136 @@
+/* Evidence Navigator + CognitiveGuard view. Same Swiss direction as the dashboard; statuses are
+   text, never colour alone. */
+
+.fatigue {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.fatigue__source {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.fatigue-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.fatigue-controls {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.fatigue-controls input,
+.fatigue-controls select {
+  min-height: var(--target);
+  max-width: 24rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.fatigue-controls input[aria-invalid='true'] {
+  border-width: 3px;
+}
+
+.fatigue-consent {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--text-sm);
+}
+
+.fatigue-consent input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex: none;
+}
+
+.fatigue-result {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--ink);
+}
+
+.fatigue-result__meta {
+  font-size: var(--text-sm);
+}
+
+.fatigue-result__status {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.fatigue-table {
+  overflow-x: auto;
+}
+
+.fatigue-table table {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.fatigue-table th,
+.fatigue-table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.fatigue-list__title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+}
+
+.fatigue-list ul {
+  padding-left: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.reaction-check {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.reaction-check__area {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 1px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.reaction-check__target {
+  width: 120px;
+  height: 120px;
+  background: var(--ink);
+}
+
+.reaction-check__text {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.reaction-check__area[data-phase='target'] .reaction-check__text {
+  position: absolute;
+  clip: rect(0 0 0 0);
+}
+
+@media (min-width: 768px) {
+  .fatigue-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+}
