@@ -10,25 +10,44 @@ export interface UseDemoReadingsResult {
   readonly reset: () => void;
 }
 
+interface DemoState {
+  readonly scenario: ScenarioId;
+  readonly initialReadings: readonly Reading[];
+  readonly readings: readonly Reading[];
+}
+
+function createDemoState(scenario: ScenarioId): DemoState {
+  const initialReadings = generateScenario(scenario, new Date());
+  return { scenario, initialReadings, readings: initialReadings };
+}
+
 /** Owns the locally retained synthetic time series (the backend keeps no measurements). */
 export function useDemoReadings(initialScenario: ScenarioId = 'steady'): UseDemoReadingsResult {
-  const [scenario, setScenario] = useState<ScenarioId>(initialScenario);
-  const [readings, setReadings] = useState<readonly Reading[]>(() =>
-    generateScenario(initialScenario, new Date()),
-  );
+  const [state, setState] = useState<DemoState>(() => createDemoState(initialScenario));
 
   const selectScenario = useCallback((next: ScenarioId) => {
-    setScenario(next);
-    setReadings(generateScenario(next, new Date()));
+    setState(createDemoState(next));
   }, []);
 
   const addReading = useCallback((missing: readonly string[] = []) => {
-    setReadings((previous) => appendReading(previous, nextSyntheticReading(previous, new Date(), { missing })));
+    setState((previous) => ({
+      ...previous,
+      readings: appendReading(
+        previous.readings,
+        nextSyntheticReading(previous.readings, new Date(), { missing }),
+      ),
+    }));
   }, []);
 
   const reset = useCallback(() => {
-    setReadings(generateScenario(scenario, new Date()));
-  }, [scenario]);
+    setState((previous) => ({ ...previous, readings: [...previous.initialReadings] }));
+  }, []);
 
-  return { scenario, readings, selectScenario, addReading, reset };
+  return {
+    scenario: state.scenario,
+    readings: state.readings,
+    selectScenario,
+    addReading,
+    reset,
+  };
 }

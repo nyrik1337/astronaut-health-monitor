@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import { App } from './App';
@@ -121,7 +121,7 @@ describe('App dashboard', () => {
     expect(screen.getByText('25')).toBeInTheDocument();
   });
 
-  test('switching scenario regenerates the history that is submitted', async () => {
+  test('reset restores the selected scenario snapshot, clears stale analysis and re-analyzes it', async () => {
     const analyze = vi.fn((request: AnalyzeRequest) => Promise.resolve(partialResponse(request.timestamp)));
     render(<App client={fakeClient({ analyze })} />);
     await screen.findByText('Partial');
@@ -130,10 +130,31 @@ describe('App dashboard', () => {
 
     await waitFor(() => expect(analyze.mock.calls.at(-1)?.[0].history).toHaveLength(3));
     expect(screen.getByText(/only 3 history values exist/)).toBeInTheDocument();
+    const selectedScenarioRequest = analyze.mock.calls.at(-1)?.[0];
 
     await userEvent.click(screen.getByRole('button', { name: 'Add reading' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Reset scenario' }));
-    await waitFor(() => expect(analyze.mock.calls.at(-1)?.[0].history).toHaveLength(3));
+    await waitFor(() => expect(analyze.mock.calls.at(-1)?.[0].history).toHaveLength(4));
+
+    let resolveReset: (value: AnalyzeResponse) => void = () => {};
+    analyze.mockImplementationOnce((request) => new Promise((resolve) => {
+      resolveReset = resolve;
+      void request;
+    }));
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 31 * 60_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Reset scenario' }));
+    vi.useRealTimers();
+
+    await waitFor(() => expect(analyze).toHaveBeenCalledTimes(4));
+    const resetRequest = analyze.mock.calls.at(-1)?.[0];
+    expect(resetRequest).toEqual(selectedScenarioRequest);
+    expect(screen.getByRole('combobox', { name: 'Scenario' })).toHaveValue('short_history');
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('Analyzing the latest reading…')).toBeInTheDocument();
+    expect(screen.queryByText('Partial')).not.toBeInTheDocument();
+
+    resolveReset(partialResponse(resetRequest?.timestamp ?? ''));
+    expect(await screen.findByText('Partial')).toBeInTheDocument();
   });
 
   test('shows "No current value" when the current reading has no value for a metric', async () => {
