@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException
 
 from .analysis import analyze
 from .schemas import AnalyzeRequest, AnalyzeResponse
+from .assessment_routes import REQUEST_MODELS, register_routes
 
 MAX_BODY_BYTES = 1_048_576
 api = FastAPI(title="Astronaut Health Monitor", version="0.1.0",
@@ -31,6 +32,14 @@ def openapi_schema():
             "required": True,
             "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AnalyzeRequest"}}},
         }
+        for path, model in REQUEST_MODELS.items():
+            body_schema = model.model_json_schema(ref_template="#/components/schemas/{model}")
+            components.update(body_schema.pop("$defs", {}))
+            components[model.__name__] = body_schema
+            schema["paths"][path]["post"]["requestBody"] = {
+                "required": True,
+                "content": {"application/json": {"schema": {"$ref": f"#/components/schemas/{model.__name__}"}}},
+            }
         api.openapi_schema = schema
     return api.openapi_schema
 
@@ -120,6 +129,8 @@ async def analyze_endpoint(request: Request):
     result = await run_in_threadpool(analyze, payload)
     return JSONResponse(result.model_dump(mode="json"))
 
+
+register_routes(api, error, validation_error, MAX_BODY_BYTES)
 
 # Wrap the whole app so even unexpected server errors include CORS headers.
 app = CORSMiddleware(api, allow_origins=["http://localhost:5173"],
