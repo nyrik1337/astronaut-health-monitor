@@ -16,7 +16,7 @@ export interface ApiClientOptions {
   readonly fetchImpl?: typeof fetch;
 }
 
-interface RequestSpec<T> {
+export interface RequestSpec<T> {
   readonly url: string;
   readonly method: 'GET' | 'POST';
   readonly body?: string;
@@ -49,7 +49,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   };
 }
 
-async function requestJson<T>(spec: RequestSpec<T>, fetchImpl: typeof fetch, timeoutMs: number): Promise<T> {
+/** Shared by the extension client (src/cognitive) so timeouts, aborts and errors behave the same. */
+export async function requestJson<T>(spec: RequestSpec<T>, fetchImpl: typeof fetch, timeoutMs: number): Promise<T> {
   const raw = await fetchWithTimeout(spec, fetchImpl, timeoutMs);
   if (!raw.ok) {
     throw toHttpError(raw);

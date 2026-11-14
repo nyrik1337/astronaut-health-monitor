@@ -79,6 +79,13 @@ describe('App views', () => {
     expect(dashboardTab).toHaveFocus();
     expect(dashboardTab).toHaveAttribute('aria-selected', 'true');
     await user.keyboard('{End}');
+    const fatigueTab = screen.getByRole('tab', { name: 'Fatigue evidence (experimental)' });
+    expect(fatigueTab).toHaveFocus();
+    expect(fatigueTab).toHaveAttribute('aria-selected', 'true');
+    expect(
+      await screen.findByRole('heading', { name: 'Fatigue evidence' }, LAZY_TIMEOUT),
+    ).toBeInTheDocument();
+    await user.keyboard('{ArrowLeft}');
     expect(missionTab).toHaveFocus();
     expect(screen.getByRole('tabpanel', { name: /Mission simulation/ })).toBeInTheDocument();
   });
