@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { type ApiClient, apiClient } from './api/client';
 import { AnalysisSummary } from './components/AnalysisSummary';
 import { BackendStatus } from './components/BackendStatus';
 import { DemoControls } from './components/DemoControls';
 import { MetricPanel } from './components/MetricPanel';
+import { panelId, tabId, type ViewId, ViewTabs } from './components/ViewTabs';
 import { WarningList } from './components/WarningList';
 import { DEMO_SUBJECT_ID } from './demo/synthetic';
 import { analysisForReading, metricAnalysisView } from './domain/analysisView';
@@ -20,7 +21,16 @@ type Props = {
 const SYNTHETIC_DATA_NOTICE =
   'All readings on this page are synthetic demo data generated in the browser. They are not from a real person or sensor.';
 
+/** The synthetic mission replay is a separate chunk, loaded the first time its view is opened. */
+const MissionView = lazy(() => import('./missionView/MissionView'));
+
 export function App({ client = apiClient }: Props) {
+  const [view, setView] = useState<ViewId>('dashboard');
+  const [missionOpened, setMissionOpened] = useState(false);
+  const selectView = (next: ViewId): void => {
+    setView(next);
+    if (next === 'mission') setMissionOpened(true);
+  };
   const demo = useDemoReadings();
   const health = useBackendHealth(client);
   // Memoized so the analysis effect re-runs only when the readings actually change.
@@ -32,8 +42,8 @@ export function App({ client = apiClient }: Props) {
 
   return (
     <>
-      <a className="skip-link" href="#main">
-        Skip to dashboard
+      <a className="skip-link" href={view === 'dashboard' ? '#main' : '#mission'}>
+        {view === 'dashboard' ? 'Skip to dashboard' : 'Skip to mission simulation'}
       </a>
       <header className="masthead">
         <div className="masthead__title">
@@ -46,6 +56,14 @@ export function App({ client = apiClient }: Props) {
         <BackendStatus state={health.state} baseUrl={client.baseUrl} onRecheck={health.recheck} />
       </header>
 
+      <ViewTabs value={view} onChange={selectView} />
+
+      <div
+        role="tabpanel"
+        id={panelId('dashboard')}
+        aria-labelledby={tabId('dashboard')}
+        hidden={view !== 'dashboard'}
+      >
       <main id="main" className="layout">
         <div className="overview">
           <AnalysisSummary
@@ -80,6 +98,22 @@ export function App({ client = apiClient }: Props) {
 
         <WarningList warnings={result?.warnings ?? null} />
       </main>
+      </div>
+
+      <div
+        role="tabpanel"
+        id={panelId('mission')}
+        aria-labelledby={tabId('mission')}
+        hidden={view !== 'mission'}
+      >
+        {missionOpened && (
+          <main id="mission" className="layout" aria-labelledby="mission-heading">
+            <Suspense fallback={<p>Loading the synthetic mission replay…</p>}>
+              <MissionView />
+            </Suspense>
+          </main>
+        )}
+      </div>
 
       <footer className="footer">
         {result !== null && <p>{result.disclaimer}</p>}

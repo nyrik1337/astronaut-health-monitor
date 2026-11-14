@@ -1,0 +1,30 @@
+/* View switch between the dashboard and the synthetic mission simulation. */
+
+.view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--rule);
+}
+
+.view-tabs__tab {
+  min-height: var(--target);
+  padding: 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.view-tabs__tab:hover {
+  color: var(--ink);
+}
+
+.view-tabs__tab[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
