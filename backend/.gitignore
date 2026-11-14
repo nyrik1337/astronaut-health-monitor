@@ -1,0 +1,31 @@
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+*.py[cod]
+
+# Local configuration and credentials (never commit real values).
+.env
+.env.*
+secrets/
+secrets.*
+credentials.json
+credentials.*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Generated reports, build outputs, and runtime files.
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+*.log
+*.tmp
