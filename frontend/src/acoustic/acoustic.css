@@ -1,0 +1,9 @@
+.orbita-acoustic { max-width: 56rem; padding: 1rem; border: 1px solid currentColor; border-radius: .5rem; line-height: 1.5; }
+.orbita-acoustic__consent { display: flex; align-items: baseline; gap: .6rem; margin: 1rem 0; }
+.orbita-acoustic__actions { display: flex; gap: .7rem; flex-wrap: wrap; }
+.orbita-acoustic button { font: inherit; padding: .5rem .8rem; cursor: pointer; }
+.orbita-acoustic button:disabled { cursor: default; opacity: .6; }
+.orbita-acoustic__results { display: flex; gap: 2rem; flex-wrap: wrap; }
+.orbita-acoustic dt { font-weight: 600; }
+.orbita-acoustic dd { margin: 0 0 .5rem; }
+.orbita-acoustic progress { max-width: 100%; }
