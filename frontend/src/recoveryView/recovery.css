@@ -1,0 +1,104 @@
+/* MindGuard Recovery Loop. Same Swiss direction as the other views; phases are text, the circle
+   is decoration only. */
+
+.recovery {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.recovery-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.stress-check-in {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.stress-check-in legend {
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.stress-check-in__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.stress-check-in__option {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--target);
+}
+
+.stress-check-in__option input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.breathing {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.breathing__safety {
+  font-size: var(--text-sm);
+}
+
+.breathing select {
+  min-height: var(--target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.breathing__guide {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  border: 1px solid var(--ink);
+}
+
+.breathing__circle {
+  width: 160px;
+  height: 160px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  transform: scale(0.55);
+}
+
+.breathing__guide[data-phase='inhale'] .breathing__circle {
+  transform: scale(1);
+  transition: transform 4s ease-in-out;
+}
+
+.breathing__guide[data-phase='exhale'] .breathing__circle {
+  transform: scale(0.55);
+  transition: transform 6s ease-in-out;
+}
+
+.breathing[data-status='paused'] .breathing__circle,
+.breathing[data-status='stopped'] .breathing__circle {
+  transition: none;
+}
+
+.breathing__prompt {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathing__guide .breathing__circle,
+  .breathing__guide[data-phase] .breathing__circle {
+    transition: none;
+    transform: none;
+  }
+}
