@@ -5,6 +5,7 @@ import { AiCompanion } from '../assistantView/AiCompanion';
 import { extensionClient, type ExtensionClient } from '../cognitive/client';
 import type { Mode } from '../cognitive/types';
 import { RealPanel } from './RealPanel';
+import { WorkingMemoryCheck } from '../workingMemory/WorkingMemoryCheck';
 import { SyntheticPanel } from './SyntheticPanel';
 import './fatigue.css';
 
@@ -57,6 +58,12 @@ export function FatigueView({ client = extensionClient, userAgent, now, storage,
           Real participant check
         </h3>
         <RealPanel client={client} userAgent={userAgent} now={now} storage={storage} onContextChange={onRealContext} />
+      </section>
+      <section className="fatigue-section" aria-labelledby="working-memory-heading">
+        <h3 id="working-memory-heading" className="section-heading">
+          Working Memory (experimental)
+        </h3>
+        <WorkingMemoryCheck />
       </section>
       <section className="fatigue-section" aria-labelledby="assistant-heading">
         <h3 id="assistant-heading" className="section-heading">

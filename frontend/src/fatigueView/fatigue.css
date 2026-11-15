@@ -134,3 +134,13 @@
     align-items: end;
   }
 }
+
+.working-memory__symbol {
+  font-size: 4.5rem;
+  line-height: 1;
+  min-height: 1em;
+}
+
+.working-memory__notice {
+  font-weight: 700;
+}
