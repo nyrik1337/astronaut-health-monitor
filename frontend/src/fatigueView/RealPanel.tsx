@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { AssistantContext } from '../assistant/context';
 import { detectPlatform, isTouchOnly } from '../cognitive/browserContext';
 import type { ExtensionClient } from '../cognitive/client';
 import {
@@ -30,6 +31,8 @@ type Props = {
   userAgent?: string;
   now?: () => number;
   storage?: Storage | null;
+  /** Receives the raw requests behind the results currently shown, for the AI Companion. */
+  onContextChange?: (context: AssistantContext) => void;
 };
 
 const SELF = { kind: 'human_entered', source_id: null } as const;
@@ -38,7 +41,7 @@ const SELF = { kind: 'human_entered', source_id: null } as const;
  * Real participant: UTC clock, opaque participant ID, browser-measured reaction checks stored only
  * in this browser. Kept fully separate from synthetic mission subjects.
  */
-export function RealPanel({ client, userAgent, now = () => Date.now(), storage }: Props) {
+export function RealPanel({ client, userAgent, now = () => Date.now(), storage, onContextChange }: Props) {
   // Memory only by default; earlier data exists in storage only if the participant opted in.
   const [keep, setKeep] = useState(() => hasSavedRealStore(storage));
   const [store, setStore] = useState<RealStoreData>(() => (keep ? loadRealStore(storage) : EMPTY_REAL_STORE));
@@ -51,6 +54,20 @@ export function RealPanel({ client, userAgent, now = () => Date.now(), storage }
   const analyze = useCallback((r: CognitiveRequest, s: AbortSignal) => client.analyzeCognitive(r, s), [client]);
   const evidence = useExtensionCall(assess);
   const cognitive = useExtensionCall(analyze);
+
+  const shownEvidence = evidence.shownRequest;
+  const shownCognitive = cognitive.shownRequest;
+  useEffect(() => {
+    onContextChange?.({
+      subject_id: participant,
+      mode: 'real_assessment',
+      clock: UTC_CLOCK,
+      as_of: shownEvidence?.as_of ?? shownCognitive?.as_of ?? new Date(0).toISOString(),
+      // Results for a different participant ID are never offered as this participant's context.
+      evidence: shownEvidence?.subject_id === participant ? shownEvidence : null,
+      cognitive: shownCognitive?.subject_id === participant ? shownCognitive : null,
+    });
+  }, [onContextChange, participant, shownEvidence, shownCognitive]);
 
   const platform = useMemo(() => detectPlatform(userAgent ?? navigator.userAgent), [userAgent]);
   const touch = useMemo(() => typeof window !== 'undefined' && isTouchOnly(window), []);
