@@ -1,4 +1,8 @@
-"""Assistant contract, context isolation, local transport and regression tests."""
+"""Assistant contract, context isolation, local transport and regression tests.
+
+Mocked answers test context construction and transport, NOT Qwen's generation
+accuracy or compliance. Live smoke output must be reviewed separately.
+"""
 
 import copy
 import io
@@ -353,3 +357,132 @@ def test_prompt_boundary_and_feature_flag(client, payload, ollama):
     for constraint in ('untrusted', 'hormone', 'Heart rate alone', 'hypoxia',
                        'CO2-tolerance', 'crew medical', 'fitness', 'baseline'):
         assert constraint in messages[0]['content']
+
+
+def pulse_only(payload, value=62, quality='unknown'):
+    """Synthetic test fixture, including when exercising real-mode wire rules."""
+    source = {'kind': 'simulated' if payload['mode'] == 'simulation' else 'real_device',
+              'source_id': 'test-fixture'}
+    evidence = {key: copy.deepcopy(payload[key]) for key in ('subject_id', 'mode', 'clock', 'as_of')}
+    evidence.update(
+        reported_issue={'code': 'fatigue', 'reported_at': payload['as_of'], 'source': source},
+        observations=[{'kind': 'heart_rate', 'observed_at': payload['as_of'], 'value': value,
+                       'source': source, 'quality': {'status': quality,
+                                                    'reasons': ['acquisition interrupted'] if quality == 'poor' else []}}],
+        notices=[],
+    )
+    payload['evidence'] = evidence
+    return evidence
+
+
+@pytest.mark.parametrize('mode', ['simulation', 'real_assessment'])
+def test_available_pulse_is_separate_from_quality_and_other_gaps(client, payload, ollama, mode):
+    if mode == 'real_assessment':
+        payload.update(mode=mode, clock={'kind': 'utc', 'id': 'utc'}, as_of=iso(NOW))
+    evidence = pulse_only(payload)
+    response = client.post(PATH, json=payload)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    # The complete deterministic response still uses the approved schema/prose.
+    from app.assessment_schemas import EvidenceRequest
+    from app.evidence import assess_evidence
+    assert result['evidence'] == assess_evidence(EvidenceRequest.model_validate(evidence)).model_dump(mode='json')
+    assert result['evidence']['assessment_status'] == 'missing_data'
+    pulse = result['evidence']['evidence'][0]
+    assert pulse['status'] == 'available' and pulse['value'] == 62
+    assert pulse['issues'] == ['quality_unknown']
+    context = prompt_context(ollama)
+    facts = context['assessment_facts']
+    assert 'heart_rate: measurement available, 62.0 bpm' in facts['measurements'][0]
+    assert 'acquisition quality=unknown' in facts['measurements'][0]
+    assert 'does not make this measurement missing' in facts['measurements'][0]
+    assert 'sleep_duration: no measurement value was supplied' in facts['measurements'][1]
+    assert 'cognitive_test: no measurement value was supplied' in facts['measurements'][2]
+    assert facts['personal_baseline'] == ('No personal baseline was supplied for this assessment; '
+                                          'whether one exists elsewhere is unknown.')
+    assert 'unknowns' not in context['evidence']  # Ambiguous legacy prose is not sent to Qwen.
+    assert 'unknowns' in result['evidence']  # Wire behavior preserved.
+    assert 'assessment_facts' not in result  # Internal context, separate from AI prose/API.
+    AssistantResponse.model_validate(result)
+
+
+@pytest.mark.parametrize('scenario', ['absent_assessment', 'empty_inventory', 'null_value'])
+def test_missing_context_is_scoped_without_inventing_a_measurement(client, payload, ollama, scenario):
+    if scenario != 'absent_assessment':
+        evidence = pulse_only(payload, value=None)
+        if scenario == 'empty_inventory':
+            evidence['observations'] = []
+    assert client.post(PATH, json=payload).status_code == 200
+    facts = prompt_context(ollama)['assessment_facts']
+    assert len(facts['measurements']) == (0 if scenario == 'absent_assessment' else 3)
+    assert all('no measurement value was supplied' in fact for fact in facts['measurements'])
+    assert facts['cognitive_result'] == 'No CognitiveGuard result was supplied for this assessment.'
+    assert 'was supplied for this assessment' in facts['personal_baseline']
+
+
+@pytest.mark.parametrize('quality,stale,expected', [
+    ('acceptable', False, 'available'), ('poor', False, 'poor_quality'),
+    ('unknown', True, 'stale_data'), ('poor', True, 'stale_data'),
+])
+def test_supplied_value_is_not_erased_by_quality_or_staleness(client, payload, ollama, quality, stale, expected):
+    evidence = pulse_only(payload, value=63.125, quality=quality)
+    if stale:
+        evidence['observations'][0]['observed_at'] = '2026-11-13T10:00:00Z'
+    result = client.post(PATH, json=payload).json()
+    fact = prompt_context(ollama)['assessment_facts']['measurements'][0]
+    assert '63.125 bpm' in fact and f'acquisition quality={quality}' in fact
+    assert f'status={expected}' in fact
+    assert 'no measurement value' not in fact
+    assert result['evidence']['evidence'][0]['status'] == expected
+    if stale and quality == 'poor':
+        assert result['evidence']['evidence'][0]['issues'] == ['stale_data', 'poor_quality']
+
+
+@pytest.mark.parametrize('history,interrupted', [(False, False), (True, False), (True, True)])
+def test_baseline_wording_respects_comparison_and_supplied_history(client, payload, ollama, history, interrupted):
+    cognitive = real_cognitive(payload, history=history)
+    if interrupted:
+        cognitive['current_test'].update(completion='aborted', interruptions=['window_blur'])
+        cognitive['current_test']['trials'] = cognitive['current_test']['trials'][:3]
+    # Even if inventory has no cognitive value, a CognitiveGuard result is supplied.
+    pulse_only(payload)
+    response = client.post(PATH, json=payload)
+    assert response.status_code == 200, response.text
+    facts = prompt_context(ollama)['assessment_facts']
+    assert facts['cognitive_result'].startswith('A CognitiveGuard result was supplied;')
+    if history and not interrupted:
+        assert response.json()['cognitive']['baseline'] is not None
+        assert facts['personal_baseline'].startswith('A personal baseline comparison is available')
+    else:
+        assert response.json()['cognitive']['baseline'] is None
+        assert facts['personal_baseline'].startswith('No personal baseline comparison is available from this assessment.')
+        assert 'no history was supplied' not in facts['personal_baseline']
+        assert 'does not establish that no baseline or history exists' in facts['personal_baseline']
+    if interrupted:
+        assert any(item['disposition'] == 'baseline' for item in response.json()['cognitive']['history_evaluation'])
+
+
+def test_cognitive_context_measurements_remain_visible_without_inventory(client, payload, ollama):
+    cognitive = real_cognitive(payload)
+    observation = pulse_only(payload)['observations'][0]
+    cognitive['context_observations'] = [observation]
+    payload['evidence'] = None
+    assert client.post(PATH, json=payload).status_code == 200
+    facts = prompt_context(ollama)['assessment_facts']
+    assert len(facts['measurements']) == 1
+    assert 'CognitiveGuard context / heart_rate: measurement available, 62.0 bpm' in facts['measurements'][0]
+
+
+def test_model_prose_is_not_silently_rewritten(client, payload, ollama):
+    pulse_only(payload)
+    # Deliberately incorrect mock text: this asserts absence of string-replacement
+    # censorship, not accuracy of generation or acceptance as an authoritative fact.
+    answer = 'No usable current evidence is available. No personal baseline exists.'
+    ollama['reply']['message']['content'] = answer
+    result = client.post(PATH, json=payload).json()
+    assert result['answer'] == answer
+    assert result['evidence']['evidence'][0]['status'] == 'available'
+    prompt = ollama['calls'][0]['messages'][0]['content']
+    assert 'Name the inference' in prompt
+    assert 'No personal baseline\nwas supplied for this assessment' in prompt
+    assert 'does NOT erase the value' in prompt
