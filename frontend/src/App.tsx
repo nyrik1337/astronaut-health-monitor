@@ -7,6 +7,8 @@ import { MetricPanel } from './components/MetricPanel';
 import { panelId, tabId, type ViewId, ViewTabs } from './components/ViewTabs';
 import { WarningList } from './components/WarningList';
 import { DemoJourney } from './components/DemoJourney';
+import { BrandMark, ThemeSwitch } from './components/BrandMark';
+import { ThemeProvider } from './theme';
 import { LanguageProvider, LanguageSwitch, useT, type TKey } from './i18n';
 import { DEMO_SUBJECT_ID } from './demo/synthetic';
 import { analysisForReading, metricAnalysisView } from './domain/analysisView';
@@ -39,7 +41,9 @@ const SKIP_LINKS: Record<ViewId, { href: string; label: TKey }> = {
 export function App(props: Props) {
   return (
     <LanguageProvider>
-      <AppShell {...props} />
+      <ThemeProvider>
+        <AppShell {...props} />
+      </ThemeProvider>
     </LanguageProvider>
   );
 }
@@ -71,15 +75,24 @@ function AppShell({ client = apiClient }: Props) {
       </a>
       <header className="masthead">
         <div className="masthead__title">
-          <p className="masthead__brand">{t('shell.brand')}</p>
+          <p className="masthead__brand">
+            <BrandMark />
+            <span className="wordmark">
+              spacekitty<span className="wordmark__dot">.</span>
+            </span>
+          </p>
           <h1>{t('shell.title')}</h1>
+          <p className="masthead__tagline">{t('shell.tagline')}</p>
           <p className="masthead__subject">
             {t('shell.subject')} <code>{DEMO_SUBJECT_ID}</code>
             <span className="tag">{t('shell.syntheticTag')}</span>
           </p>
         </div>
         <div className="masthead__tools">
-          <LanguageSwitch />
+          <div className="masthead__switches">
+            <LanguageSwitch />
+            <ThemeSwitch />
+          </div>
           <BackendStatus state={health.state} baseUrl={client.baseUrl} onRecheck={health.recheck} />
         </div>
       </header>

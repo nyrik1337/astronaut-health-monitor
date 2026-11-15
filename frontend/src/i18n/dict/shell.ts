@@ -4,8 +4,12 @@ import { section } from '../section';
 export const shell = section(
   {
     'shell.language': 'Language',
-    'shell.brand': 'ORBITA · Mission Control',
-    'shell.title': 'Astronaut Health Monitor',
+    'shell.brand': 'spacekitty.',
+    'shell.title': 'Crew Health Intelligence',
+    'shell.tagline': 'Evidence first. Explanation second.',
+    'shell.theme': 'Theme',
+    'shell.theme.light': 'Light theme',
+    'shell.theme.dark': 'Dark theme',
     'shell.subject': 'Subject',
     'shell.syntheticTag': 'Synthetic demo data',
     'shell.syntheticNotice':
@@ -43,8 +47,12 @@ export const shell = section(
   },
   {
     'shell.language': 'Язык',
-    'shell.brand': 'ORBITA · Центр управления',
-    'shell.title': 'Монитор здоровья астронавтов',
+    'shell.brand': 'spacekitty.',
+    'shell.title': 'Мониторинг здоровья экипажа',
+    'shell.tagline': 'Сначала доказательства. Потом объяснение.',
+    'shell.theme': 'Тема',
+    'shell.theme.light': 'Светлая тема',
+    'shell.theme.dark': 'Тёмная тема',
     'shell.subject': 'Субъект',
     'shell.syntheticTag': 'Синтетические демо-данные',
     'shell.syntheticNotice':

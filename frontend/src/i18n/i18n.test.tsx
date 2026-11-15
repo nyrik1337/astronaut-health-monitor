@@ -60,11 +60,11 @@ describe('EN/RU dictionaries', () => {
 describe('Language switch in the app', () => {
   test('English by default; RU translates header, tabs and journey without storing the choice', () => {
     render(<App client={fakeClient()} />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Astronaut Health Monitor');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Crew Health Intelligence');
     expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true');
 
     toRussian();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Монитор здоровья астронавтов');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Мониторинг здоровья экипажа');
     expect(screen.getByRole('tab', { name: 'Данные об усталости (эксперимент)' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Маршрут демонстрации' })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('ru');
@@ -85,6 +85,11 @@ describe('Language switch in the app', () => {
     expect(screen.getByRole('heading', { name: 'Симуляция миссии' })).toBeInTheDocument();
     expect(screen.getByTestId('mission-day')).toHaveTextContent('120');
     expect(screen.getByRole('tab', { name: 'Симуляция миссии (синтетика)' })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Тёмная тема' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(screen.getByTestId('mission-day')).toHaveTextContent('120');
+    expect(localStorage.length).toBe(0);
   });
 });
 
