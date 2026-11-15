@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { RT, isActive, type RtState } from '../cognitive/rtEngine';
 import { useReactionTest } from '../cognitive/useReactionTest';
+import { Rich, useT, type TFn } from '../i18n';
 
 type Props = {
   phase: 'familiarization' | 'measurement';
@@ -10,15 +11,17 @@ type Props = {
   onFinished: (state: RtState) => void;
 };
 
-function stageText(state: RtState): string {
+function stageText(state: RtState, t: TFn): string {
   switch (state.phase) {
     case 'countdown':
-      return `Starting in ${Math.max(1, Math.ceil((RT.COUNTDOWN_MS - (performance.now() - state.phaseStart)) / 1000))}…`;
+      return t('rc.starting', {
+        seconds: Math.max(1, Math.ceil((RT.COUNTDOWN_MS - (performance.now() - state.phaseStart)) / 1000)),
+      });
     case 'waiting':
     case 'iti':
-      return 'Wait…';
+      return t('rc.wait');
     case 'target':
-      return 'Press Space';
+      return t('rc.press');
     default:
       return '';
   }
@@ -26,6 +29,7 @@ function stageText(state: RtState): string {
 
 /** Browser part of the experimental orbita-rt-1 check (real participants only). */
 export function ReactionCheck({ phase, unsupported, onFinished }: Props) {
+  const { t } = useT();
   const { state, start, cancel, reset } = useReactionTest();
   const area = useRef<HTMLDivElement>(null);
   const reported = useRef(false);
@@ -49,10 +53,7 @@ export function ReactionCheck({ phase, unsupported, onFinished }: Props) {
   return (
     <div className="reaction-check">
       <p>
-        Experimental ORBITA reaction-time check (orbita-rt-1), not a clinically validated PVT or NASA test. 20 trials:
-        after a short random wait a black square appears — press <kbd>Space</kbd> as soon as you see it. Do not press
-        before it appears. Switching tabs or windows stops the check. This attempt is labelled{' '}
-        <strong>{phase === 'familiarization' ? 'familiarization (practice)' : 'measurement'}</strong>.
+        <Rich text={t('rc.intro', { phase: t(`rc.phase.${phase}`) })} />
       </p>
       {unsupported !== null ? (
         <p className="error-notice" role="note">
@@ -69,27 +70,27 @@ export function ReactionCheck({ phase, unsupported, onFinished }: Props) {
             data-testid="reaction-area"
           >
             {state.phase === 'target' && <span className="reaction-check__target" aria-hidden="true" />}
-            <span className="reaction-check__text">{stageText(state)}</span>
+            <span className="reaction-check__text">{stageText(state, t)}</span>
           </div>
           <p className="numeric" aria-live="polite">
-            {active ? `Trial ${Math.min(state.trials.length + 1, RT.TRIALS)} of ${RT.TRIALS}` : ''}
+            {active ? t('rc.trial', { n: Math.min(state.trials.length + 1, RT.TRIALS), total: RT.TRIALS }) : ''}
           </p>
           <div className="button-row">
             {active ? (
               <button type="button" className="button" onMouseDown={(e) => e.preventDefault()} onClick={cancel}>
-                Cancel check
+                {t('rc.cancel')}
               </button>
             ) : (
               <button type="button" className="button button--primary" onClick={begin}>
-                Start reaction-time check
+                {t('rc.start')}
               </button>
             )}
           </div>
           {state.phase === 'finished' && (
             <p className="muted">
               {state.completion === 'completed'
-                ? 'Check completed: 20 trials recorded.'
-                : `Check stopped (${state.interruptions.join(', ')}) after ${state.trials.length} trials. Only completed trials are kept; the attempt is sent as interrupted.`}
+                ? t('rc.completed')
+                : t('rc.stopped', { reasons: state.interruptions.join(', '), count: state.trials.length })}
             </p>
           )}
         </>

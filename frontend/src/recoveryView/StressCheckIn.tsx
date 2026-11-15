@@ -1,3 +1,5 @@
+import { useT } from '../i18n';
+
 export type StressRating = 1 | 2 | 3 | 4 | 5;
 
 export const STRESS_LABELS: Record<StressRating, string> = {
@@ -19,6 +21,7 @@ type Props = {
 
 /** Voluntary 1–5 self-report. Leaving it unanswered is always allowed. */
 export function StressCheckIn({ name, legend, value, onChange }: Props) {
+  const { t } = useT();
   return (
     <fieldset className="stress-check-in">
       <legend>{legend}</legend>
@@ -32,7 +35,7 @@ export function StressCheckIn({ name, legend, value, onChange }: Props) {
               checked={value === rating}
               onChange={() => onChange(rating)}
             />
-            <span className="numeric">{rating}</span> {STRESS_LABELS[rating]}
+            <span className="numeric">{rating}</span> {t(`mg.rating.${rating}`)}
           </label>
         ))}
       </div>

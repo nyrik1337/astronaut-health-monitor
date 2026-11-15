@@ -3,9 +3,9 @@
  * presentation attributes, where CSS custom properties are not reliably resolved.
  */
 export const CHART_COLORS = {
-  ink: '#111111',
-  muted: '#5B5B60',
-  rule: '#E3E3E6',
-  accent: '#002FA7',
-  surface: '#FFFFFF',
+  ink: '#E8ECF4',
+  muted: '#9AA4B5',
+  rule: '#222A3A',
+  accent: '#6B9DFF',
+  surface: '#07090F',
 } as const;

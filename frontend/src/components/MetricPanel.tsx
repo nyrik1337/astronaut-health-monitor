@@ -5,6 +5,8 @@ import { countMissing, type SeriesPoint } from '../domain/readings';
 import { MetricChart } from './MetricChart';
 import { MetricDataTable } from './MetricDataTable';
 import { MetricFacts } from './MetricFacts';
+import { useT } from '../i18n';
+import { vitalLabel } from './vitalLabel';
 
 type Props = {
   folio: number;
@@ -14,6 +16,8 @@ type Props = {
 };
 
 export function MetricPanel({ folio, definition, series, view }: Props) {
+  const { t } = useT();
+  const label = vitalLabel(definition, t);
   const headingId = `metric-${definition.key}`;
   const current = series.at(-1)?.value ?? null;
   const missing = countMissing(series);
@@ -26,10 +30,10 @@ export function MetricPanel({ folio, definition, series, view }: Props) {
       </p>
       <div className="metric__reading">
         <h3 id={headingId} className="metric__title">
-          {definition.label}
+          {label}
         </h3>
         {current === null ? (
-          <p className="metric__value metric__value--missing">No current value</p>
+          <p className="metric__value metric__value--missing">{t('mp.noCurrent')}</p>
         ) : (
           <p className="metric__value">
             <span className="numeric">{formatNumber(current, definition.decimals)}</span>
@@ -42,7 +46,7 @@ export function MetricPanel({ folio, definition, series, view }: Props) {
         <MetricChart definition={definition} series={series} median={median} />
         {missing > 0 && (
           <p className="muted metric__gaps">
-            {missing} of {series.length} readings have no {definition.label} value; the line breaks at each gap.
+            {t('mp.gaps', { missing, total: series.length, metric: label })}
           </p>
         )}
         <MetricDataTable definition={definition} series={series} />

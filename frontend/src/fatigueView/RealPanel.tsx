@@ -25,6 +25,7 @@ import { CognitiveResult } from './CognitiveResult';
 import { EvidenceResult } from './EvidenceResult';
 import { ReactionCheck } from './ReactionCheck';
 import { useExtensionCall } from './useExtensionCall';
+import { Rich, useT } from '../i18n';
 
 type Props = {
   client: ExtensionClient;
@@ -42,6 +43,7 @@ const SELF = { kind: 'human_entered', source_id: null } as const;
  * in this browser. Kept fully separate from synthetic mission subjects.
  */
 export function RealPanel({ client, userAgent, now = () => Date.now(), storage, onContextChange }: Props) {
+  const { t } = useT();
   // Memory only by default; earlier data exists in storage only if the participant opted in.
   const [keep, setKeep] = useState(() => hasSavedRealStore(storage));
   const [store, setStore] = useState<RealStoreData>(() => (keep ? loadRealStore(storage) : EMPTY_REAL_STORE));
@@ -77,9 +79,9 @@ export function RealPanel({ client, userAgent, now = () => Date.now(), storage, 
   const sleepHours = sleepInput.trim() === '' ? null : Number(sleepInput);
   const sleepValid = sleepHours === null || (Number.isFinite(sleepHours) && sleepHours >= 0 && sleepHours <= 24);
   const unsupported = !validId
-    ? 'Enter an opaque participant ID (letters, digits, - or _; no names).'
+    ? t('real.badId')
     : touch
-      ? 'Touch devices are not supported by this check (desktop or laptop keyboard only).'
+      ? t('real.touch')
       : platform.ok
         ? null
         : platform.reason;
@@ -185,51 +187,48 @@ export function RealPanel({ client, userAgent, now = () => Date.now(), storage, 
   return (
     <div className="fatigue-panel" data-mode="real_assessment">
       <p>
-        <span className="tag">Real participant</span> UTC clock. This is your own browser measurement, not astronaut
-        or NASA data. Results stay in this page’s memory and are lost on reload unless you choose to keep them below.
-        They are never added to a synthetic crew member’s history.
+        <span className="tag">{t('real.tag')}</span> {t('real.intro')}
       </p>
       <label className="fatigue-consent">
-        <input type="checkbox" checked={keep} onChange={(e) => onKeepChange(e.target.checked)} /> Keep my real-participant
-        results in this browser after reload (stored only on this device until you clear them).
+        <input type="checkbox" checked={keep} onChange={(e) => onKeepChange(e.target.checked)} /> {t('real.keep')}
       </label>
       <div className="fatigue-controls">
         <div className="field">
-          <label htmlFor="participant-id">Participant ID (opaque, no names)</label>
+          <label htmlFor="participant-id">{t('real.id')}</label>
           <input id="participant-id" value={participant} onChange={(e) => setParticipant(e.target.value.trim())} aria-invalid={!validId} />
         </div>
         <div className="field">
-          <label htmlFor="device-class">This computer is a</label>
+          <label htmlFor="device-class">{t('real.device')}</label>
           <select id="device-class" value={setup.device_class} disabled={store.setup !== null} onChange={(e) => setDeviceClass(e.target.value as RealSetup['device_class'])}>
-            <option value="laptop">Laptop</option>
-            <option value="desktop">Desktop</option>
+            <option value="laptop">{t('real.laptop')}</option>
+            <option value="desktop">{t('real.desktop')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="sleep-hours">Optional sleep check-in: hours slept in the last 24 h</label>
+          <label htmlFor="sleep-hours">{t('real.sleep')}</label>
           <input id="sleep-hours" ref={sleepRef} type="number" min={0} max={24} step={0.5} value={sleepInput} onChange={(e) => setSleepInput(e.target.value)} aria-invalid={!sleepValid} />
         </div>
       </div>
       <p className="muted">
-        Setup ID <code>{setup.setup_id}</code> · {sessions.length} stored session(s) for this participant.
+        <Rich text={t('real.setup', { id: setup.setup_id, count: sessions.length })} />
       </p>
       <div className="button-row">
         <button type="button" className="button button--primary" onClick={reportFatigue} disabled={!validId || !sleepValid}>
-          I feel fatigued — show the evidence
+          {t('real.report')}
         </button>
         <button type="button" className="button" onClick={() => persist(withSetup(store, { setup_id: newSetupId(), device_class: deviceClass }))}>
-          Hardware changed: new setup ID
+          {t('real.newSetup')}
         </button>
         <button type="button" className="button" onClick={clearAll}>
-          Clear real participant data
+          {t('real.clear')}
         </button>
       </div>
-      <CallStatus state={evidence.state} label="Assessing evidence" onRetry={reportFatigue} />
+      <CallStatus state={evidence.state} label={t('call.evidence')} onRetry={reportFatigue} />
       {evidence.state.phase === 'success' && (
         <EvidenceResult response={evidence.state.data} onCheck={onCheck} availableChecks={['sleep_check_in']} />
       )}
       <ReactionCheck phase={nextPhase(sessions, setup.setup_id)} unsupported={unsupported} onFinished={onFinished} />
-      <CallStatus state={cognitive.state} label="Analysing the reaction-time check" onRetry={reportFatigue} />
+      <CallStatus state={cognitive.state} label={t('call.cog')} onRetry={reportFatigue} />
       {cognitive.state.phase === 'success' && <CognitiveResult response={cognitive.state.data} />}
     </div>
   );

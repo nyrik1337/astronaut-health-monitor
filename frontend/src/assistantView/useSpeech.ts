@@ -33,7 +33,8 @@ export function useSpeech(): Speech {
     if (engine === null) return;
     engine.cancel();
     const utterance = new window.SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
+    // Pick the voice language from the text itself: answers may be English or Russian.
+    utterance.lang = /[\u0400-\u04FF]/.test(text) ? 'ru-RU' : 'en-US';
     const done = (): void => setSpeakingId((current) => (current === id ? null : current));
     utterance.onend = done;
     utterance.onerror = done;

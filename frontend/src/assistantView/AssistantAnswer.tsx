@@ -1,11 +1,8 @@
 import type { AssistantResponse } from '../assistant/types';
 import { CognitiveResult } from '../fatigueView/CognitiveResult';
 import { EvidenceResult, TextList } from '../fatigueView/EvidenceResult';
+import { useT } from '../i18n';
 
-const PROVENANCE_LABEL: Record<AssistantResponse['provenance'], string> = {
-  synthetic_demonstration: 'Synthetic demonstration',
-  client_asserted_real: 'Real participant (self-reported, not authenticated or medically validated)',
-};
 
 type Props = {
   response: AssistantResponse;
@@ -17,36 +14,37 @@ type Props = {
 
 /** One AI answer, rendered strictly as plain text, with its provenance, limitations and disclaimer. */
 export function AssistantAnswer({ response, speaking, speechSupported, onSpeak, onStop }: Props) {
+  const { t } = useT();
   return (
     <div className="assistant__answer" data-testid="assistant-answer">
       <p className="assistant__answer-meta">
-        <span className="tag">AI-generated</span> {PROVENANCE_LABEL[response.provenance]} · model{' '}
+        <span className="tag">{t('ai.generated')}</span> {t(`ai.prov.${response.provenance}`)} · {t('ai.modelCode')}{' '}
         <code>{response.model}</code>
       </p>
       <p className="assistant__answer-text">{response.answer}</p>
       {response.truncated && (
-        <p className="assistant__error">This answer reached the local model’s output limit and may be cut off.</p>
+        <p className="assistant__error">{t('ai.truncated')}</p>
       )}
       <div className="button-row">
         {speechSupported ? (
           speaking ? (
             <button type="button" className="button" onClick={onStop}>
-              Stop reading
+              {t('ai.stop')}
             </button>
           ) : (
             <button type="button" className="button" onClick={onSpeak}>
-              Speak answer
+              {t('ai.speak')}
             </button>
           )
         ) : (
-          <p className="muted">Read-aloud is not available in this browser.</p>
+          <p className="muted">{t('ai.noSpeech')}</p>
         )}
       </div>
-      <TextList title="Limitations" items={response.limitations} />
+      <TextList title={t('ai.limitations')} items={response.limitations} />
       <p className="assistant__disclaimer">{response.disclaimer}</p>
       {(response.evidence !== null || response.cognitive !== null) && (
         <details className="assistant__assessments" open data-testid="assistant-assessments">
-          <summary>Assessment recomputed by the backend for this answer (deterministic, authoritative)</summary>
+          <summary>{t('ai.recomputed')}</summary>
           {response.evidence !== null && <EvidenceResult response={response.evidence} />}
           {response.cognitive !== null && <CognitiveResult response={response.cognitive} />}
         </details>

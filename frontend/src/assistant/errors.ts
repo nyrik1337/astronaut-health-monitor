@@ -1,4 +1,21 @@
 import type { ApiError } from '../api/errors';
+import { isKey, type TFn } from '../i18n';
+
+/** Translated variant of assistantErrorMessage, rendered at display time so it follows the language. */
+export function assistantErrorText(error: ApiError, t: TFn): string {
+  const byCode = `ai.err.${error.code}`;
+  if (isKey(byCode)) return t(byCode);
+  switch (error.kind) {
+    case 'network':
+    case 'timeout':
+    case 'invalid_response':
+      return t(`ai.err.${error.kind}`);
+    case 'http':
+      return error.status === 422 ? t('ai.err.validation') : t('ai.err.http', { status: error.status ?? '?' });
+    default:
+      return t('ai.err.unexpected');
+  }
+}
 
 /** Plain-language explanation of a failed AI Companion request. Never shown as an AI answer. */
 export function assistantErrorMessage(error: ApiError): string {

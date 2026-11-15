@@ -12,12 +12,12 @@ import { EnvironmentStatus } from './EnvironmentStatus';
 import { EventFeed } from './EventFeed';
 import { MeasurementDetails } from './MeasurementDetails';
 import { MissionControls } from './MissionControls';
-import { REPLAY_NOTICE } from './labels';
+import { useT, type TFn } from '../i18n';
 import { usePlayback } from './usePlayback';
 import './mission.css';
 
 /** Text for the polite live region when new notifications appear (empty otherwise). */
-function useAnnouncement(day: number, titles: readonly string[]): string {
+function useAnnouncement(day: number, titles: readonly string[], t: TFn): string {
   const [message, setMessage] = useState('');
   const previous = useRef({ day, count: titles.length });
 
@@ -28,31 +28,33 @@ function useAnnouncement(day: number, titles: readonly string[]): string {
     const added = titles.slice(0, titles.length - before.count);
     setMessage(
       added.length === 1
-        ? `Day ${day}: new notification. ${added[0] ?? ''}`
-        : `Day ${day}: ${added.length} new notifications.`,
+        ? t('ms.announce.one', { day, title: added[0] ?? '' })
+        : t('ms.announce.many', { day, count: added.length }),
     );
+    // The announcement is written once per change of day; language switches do not re-announce.
   }, [day, titles]);
 
   return message;
 }
 
 export function MissionView() {
+  const { t } = useT();
   const mission = useMemo(() => runMission(DEMO_SEED), []);
   const meta = useMemo(() => missionMeta(mission, 0), [mission]);
   const playback = usePlayback();
   const snapshot = useMemo(() => snapshotAt(mission, playback.day), [mission, playback.day]);
   const [selection, setSelection] = useState<CellSelection | null>(null);
   const titles = useMemo(() => snapshot.alerts.map((a) => a.title), [snapshot]);
-  const announcement = useAnnouncement(snapshot.day, titles);
+  const announcement = useAnnouncement(snapshot.day, titles, t);
 
   return (
     <div className="mission">
       <div className="mission__intro">
         <h2 id="mission-heading" className="mission__title">
-          Mission simulation
+          {t('ms.title')}
         </h2>
         <p className="mission__notice">
-          <span className="tag">Synthetic replay</span> {REPLAY_NOTICE}
+          <span className="tag">{t('ms.tag')}</span> {t('ms.notice')}
         </p>
       </div>
       <p className="visually-hidden" aria-live="polite" data-testid="mission-announcement">

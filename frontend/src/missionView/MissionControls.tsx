@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { BASELINE_DAYS, MISSION_DAYS } from '../mission/types';
 import type { ScenarioEvent } from '../mission/types';
-import { SCENARIO_LABELS } from './labels';
+import { useT } from '../i18n';
 import { BASE_DAYS_PER_SECOND, SPEEDS, isSpeed, type Speed } from './playback';
 
 type Props = {
@@ -16,11 +16,10 @@ type Props = {
   onSpeed: (speed: Speed) => void;
 };
 
-const speedLabel = (speed: Speed): string =>
-  `${speed}× (about ${Math.round(BASE_DAYS_PER_SECOND * speed)} days per second)`;
 
 export function MissionControls(props: Props) {
   const { day, playing, speed, events, onPlay, onPause, onReset, onSeek, onSpeed } = props;
+  const { t } = useT();
 
   const handleSpeed = (event: ChangeEvent<HTMLSelectElement>): void => {
     const value = Number(event.target.value);
@@ -30,45 +29,44 @@ export function MissionControls(props: Props) {
   return (
     <section className="mission-controls" aria-labelledby="mission-controls-heading">
       <h3 id="mission-controls-heading" className="section-heading">
-        Replay controls
+        {t('mc.title')}
       </h3>
       <p className="mission-controls__day">
-        Day <span className="numeric" data-testid="mission-day">{day}</span>
-        <span className="muted"> of {MISSION_DAYS}</span>
+        {t('mc.day')} <span className="numeric" data-testid="mission-day">{day}</span>
+        <span className="muted"> {t('mc.of', { total: MISSION_DAYS })}</span>
       </p>
       {day <= BASELINE_DAYS && (
         <p className="mission-controls__phase">
-          Baseline building: day {day} of {BASELINE_DAYS}. Nothing is evaluated until day{' '}
-          {BASELINE_DAYS + 1}.
+          {t('mc.baseline', { day, total: BASELINE_DAYS, next: BASELINE_DAYS + 1 })}
         </p>
       )}
       <div className="button-row">
         {playing ? (
           <button type="button" className="button button--primary" onClick={onPause}>
-            Pause
+            {t('mc.pause')}
           </button>
         ) : (
           <button type="button" className="button button--primary" onClick={onPlay}>
-            Play
+            {t('mc.play')}
           </button>
         )}
         <button type="button" className="button" onClick={onReset}>
-          Reset
+          {t('mc.reset')}
         </button>
       </div>
       <div className="mission-controls__row">
         <div className="field">
-          <label htmlFor="mission-speed">Playback speed</label>
+          <label htmlFor="mission-speed">{t('mc.speed')}</label>
           <select id="mission-speed" value={speed} onChange={handleSpeed}>
             {SPEEDS.map((option) => (
               <option key={option} value={option}>
-                {speedLabel(option)}
+                {t('mc.speedOption', { speed: option, days: Math.round(BASE_DAYS_PER_SECOND * option) })}
               </option>
             ))}
           </select>
         </div>
         <div className="field mission-controls__timeline">
-          <label htmlFor="mission-timeline">Mission day</label>
+          <label htmlFor="mission-timeline">{t('mc.timeline')}</label>
           <input
             id="mission-timeline"
             type="range"
@@ -81,7 +79,7 @@ export function MissionControls(props: Props) {
         </div>
       </div>
       <div className="mission-controls__events">
-        <p className="muted">Scripted events in this synthetic replay (jump to day):</p>
+        <p className="muted">{t('mc.events')}</p>
         <ul className="mission-events">
           {events.map((event) => (
             <li key={event.id}>
@@ -91,7 +89,7 @@ export function MissionControls(props: Props) {
                 aria-pressed={day >= event.markerDay}
                 onClick={() => onSeek(event.markerDay)}
               >
-                Day {event.markerDay}: {SCENARIO_LABELS[event.id]}
+                {t('mc.event', { day: event.markerDay, label: t(`scenario.${event.id}`) })}
               </button>
             </li>
           ))}

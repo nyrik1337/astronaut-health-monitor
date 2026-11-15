@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { PRACTICE_DURATIONS_MS, isPracticeDuration, type PracticeDurationMs } from '../recovery/breathing';
+import { useT, type TKey } from '../i18n';
 import { useBreathingPractice, type PracticeStatus } from '../recovery/useBreathingPractice';
 
 const PROMPTS = {
-  inhale: 'Breathe in gently through your nose',
-  exhale: 'Breathe out slowly and softly',
-  done: 'Practice finished — breathe normally',
-} as const;
+  inhale: 'br.inhale',
+  exhale: 'br.exhale',
+  done: 'br.done',
+} as const satisfies Record<string, TKey>;
 
 type Props = {
   onEnded: (status: Extract<PracticeStatus, 'stopped' | 'completed'>) => void;
@@ -17,6 +18,7 @@ type Props = {
 /** Guided relaxed breathing: comfortable inhale and exhale prompts only, with pause and stop. */
 export function BreathingPractice({ onEnded, onRestart, now }: Props) {
   const [duration, setDuration] = useState<PracticeDurationMs>(60_000);
+  const { t } = useT();
   const practice = useBreathingPractice(duration, now);
   const { status, frame } = practice;
   const active = status === 'running' || status === 'paused';
@@ -37,13 +39,12 @@ export function BreathingPractice({ onEnded, onRestart, now }: Props) {
   return (
     <div className="breathing" data-status={status}>
       <p className="breathing__safety">
-        Breathe at a pace that feels comfortable. This practice has no breath-holding and no fast breathing. If you
-        feel dizzy or uncomfortable, stop and breathe normally.
+        {t('br.safety')}
       </p>
       {status === 'idle' && (
         <div className="button-row">
           <div className="field">
-            <label htmlFor="breathing-duration">Length</label>
+            <label htmlFor="breathing-duration">{t('br.length')}</label>
             <select
               id="breathing-duration"
               value={duration}
@@ -54,13 +55,13 @@ export function BreathingPractice({ onEnded, onRestart, now }: Props) {
             >
               {PRACTICE_DURATIONS_MS.map((ms) => (
                 <option key={ms} value={ms}>
-                  {ms / 1000} seconds
+                  {t('br.seconds', { seconds: ms / 1000 })}
                 </option>
               ))}
             </select>
           </div>
           <button type="button" className="button button--primary" onClick={practice.start}>
-            Start breathing practice
+            {t('br.start')}
           </button>
         </div>
       )}
@@ -70,10 +71,12 @@ export function BreathingPractice({ onEnded, onRestart, now }: Props) {
             <div className="breathing__circle" />
           </div>
           <p className="breathing__prompt" aria-live="polite" data-testid="breathing-prompt">
-            {status === 'paused' ? 'Paused' : status === 'stopped' ? 'Practice stopped — breathe normally' : PROMPTS[frame.phase]}
+            {status === 'paused' ? t('br.paused') : status === 'stopped' ? t('br.stopped') : t(PROMPTS[frame.phase])}
           </p>
           <p className="muted numeric" data-testid="breathing-remaining">
-            {frame.phase === 'done' ? `${frame.breaths} breaths` : `${frame.phaseSecondsLeft} s · ${frame.remainingSeconds} s left`}
+            {frame.phase === 'done'
+              ? t('br.breaths', { count: frame.breaths })
+              : t('br.remaining', { phase: frame.phaseSecondsLeft, total: frame.remainingSeconds })}
           </p>
         </>
       )}
@@ -81,22 +84,22 @@ export function BreathingPractice({ onEnded, onRestart, now }: Props) {
         <div className="button-row">
           {status === 'running' ? (
             <button type="button" className="button" onClick={practice.pause}>
-              Pause
+              {t('br.pause')}
             </button>
           ) : (
             <button type="button" className="button" onClick={practice.resume}>
-              Resume
+              {t('br.resume')}
             </button>
           )}
           <button type="button" className="button" onClick={practice.stop}>
-            Stop
+            {t('br.stop')}
           </button>
         </div>
       )}
       {ended && (
         <div className="button-row">
           <button type="button" className="button" onClick={restart}>
-            Practice again
+            {t('br.again')}
           </button>
         </div>
       )}

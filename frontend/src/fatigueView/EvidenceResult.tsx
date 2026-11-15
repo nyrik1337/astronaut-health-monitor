@@ -1,15 +1,6 @@
 import type { EvidenceResponse, NextCheck } from '../cognitive/types';
-import {
-  ASSESSMENT_LABEL,
-  EVIDENCE_STATUS_LABEL,
-  ISSUE_LABEL,
-  KIND_LABEL,
-  KIND_UNIT,
-  MODE_LABEL,
-  NEXT_CHECK_LABEL,
-  PROVENANCE_LABEL,
-  formatAge,
-} from './labels';
+import { useT } from '../i18n';
+import { KIND_UNIT, formatAge } from './labels';
 
 type Props = {
   response: EvidenceResponse;
@@ -20,55 +11,56 @@ type Props = {
 
 /** Evidence Navigator result: an inventory of what is known, missing or stale — not a diagnosis. */
 export function EvidenceResult({ response, onCheck, availableChecks = [] }: Props) {
+  const { t } = useT();
   return (
-    <section className="fatigue-result" aria-label="Evidence inventory" data-testid="evidence-result">
+    <section className="fatigue-result" aria-label={t('ev.aria')} data-testid="evidence-result">
       <p className="fatigue-result__meta">
-        <span className="tag">{MODE_LABEL[response.mode]}</span> Subject <code>{response.subject_id}</code> · as of{' '}
-        {response.as_of}
+        <span className="tag">{t(`mode.${response.mode}`)}</span> {t('ev.subject')} <code>{response.subject_id}</code> ·{' '}
+        {t('ev.asOf')} {response.as_of}
       </p>
-      <p className="fatigue-result__status">{ASSESSMENT_LABEL[response.assessment_status]}</p>
+      <p className="fatigue-result__status">{t(`assessment.${response.assessment_status}`)}</p>
       <div className="fatigue-table">
         <table>
-          <caption className="visually-hidden">Evidence for the reported fatigue</caption>
+          <caption className="visually-hidden">{t('ev.caption')}</caption>
           <thead>
             <tr>
-              <th scope="col">Evidence</th>
-              <th scope="col">Status</th>
-              <th scope="col">Value</th>
-              <th scope="col">Age</th>
-              <th scope="col">Source</th>
-              <th scope="col">Notes</th>
+              <th scope="col">{t('ev.col.evidence')}</th>
+              <th scope="col">{t('ev.col.status')}</th>
+              <th scope="col">{t('ev.col.value')}</th>
+              <th scope="col">{t('ev.col.age')}</th>
+              <th scope="col">{t('ev.col.source')}</th>
+              <th scope="col">{t('ev.col.notes')}</th>
             </tr>
           </thead>
           <tbody>
             {response.evidence.map((item) => (
-              <tr key={item.kind} data-kind={item.kind}>
-                <th scope="row">{KIND_LABEL[item.kind]}</th>
-                <td>{EVIDENCE_STATUS_LABEL[item.status]}</td>
+              <tr key={item.kind} data-kind={item.kind} data-status={item.status}>
+                <th scope="row">{t(`kind.${item.kind}`)}</th>
+                <td>{t(`status.${item.status}`)}</td>
                 <td className="numeric">{item.value === null ? '—' : `${item.value} ${KIND_UNIT[item.kind]}`}</td>
                 <td className="numeric">{formatAge(item.age_seconds)}</td>
-                <td>{item.source === null ? '—' : PROVENANCE_LABEL[item.source.kind]}</td>
-                <td>{item.issues.map((issue) => ISSUE_LABEL[issue]).join(', ') || '—'}</td>
+                <td>{item.source === null ? '—' : t(`prov.${item.source.kind}`)}</td>
+                <td>{item.issues.map((issue) => t(`issue.${issue}`)).join(', ') || '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <TextList title="What the data show" items={response.what_data_show} />
-      <TextList title="Unknowns" items={response.unknowns} />
-      <TextList title="Limitations" items={response.limitations} />
+      <TextList title={t('ev.shows')} items={response.what_data_show} />
+      <TextList title={t('ev.unknowns')} items={response.unknowns} />
+      <TextList title={t('ev.limitations')} items={response.limitations} />
       {response.next_checks.length > 0 && (
         <div className="fatigue-checks">
-          <p className="fatigue-list__title">Optional checks (voluntary, not medical instructions)</p>
+          <p className="fatigue-list__title">{t('ev.checks')}</p>
           <div className="button-row">
             {response.next_checks.map((check) =>
               onCheck && availableChecks.includes(check.code) ? (
                 <button key={check.code} type="button" className="button" onClick={() => onCheck(check.code)}>
-                  {NEXT_CHECK_LABEL[check.code]}
+                  {t(`check.${check.code}`)}
                 </button>
               ) : (
                 <span key={check.code} className="tag">
-                  {NEXT_CHECK_LABEL[check.code]}
+                  {t(`check.${check.code}`)}
                 </span>
               ),
             )}
@@ -77,7 +69,7 @@ export function EvidenceResult({ response, onCheck, availableChecks = [] }: Prop
       )}
       {response.notices.length > 0 && (
         <TextList
-          title="Notices (unverified client input)"
+          title={t('ev.notices')}
           items={response.notices.map((n) => `${n.reported_at}: ${n.text}`)}
         />
       )}

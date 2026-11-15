@@ -4,6 +4,8 @@ import { formatClock, formatDateTime, formatNumber, withUnit } from '../domain/f
 import type { MetricDefinition } from '../domain/metrics';
 import type { SeriesPoint } from '../domain/readings';
 import { CHART_COLORS } from '../theme';
+import { useT } from '../i18n';
+import { vitalLabel } from './vitalLabel';
 
 type Props = {
   definition: MetricDefinition;
@@ -28,11 +30,13 @@ function chartSummary(definition: MetricDefinition, series: readonly SeriesPoint
 }
 
 export function MetricChart({ definition, series, median }: Props) {
+  const { t } = useT();
+  const label = vitalLabel(definition, t);
   const values = series.flatMap((point) => (point.value === null ? [] : [point.value]));
   const domain = computeYDomain(values, median, definition.decimals);
 
   if (domain === null) {
-    return <p className="chart-empty">No {definition.label} values recorded yet.</p>;
+    return <p className="chart-empty">{t('mch.empty', { metric: label })}</p>;
   }
 
   const formatValue = (value: number): string => formatNumber(value, definition.decimals);
@@ -59,16 +63,16 @@ export function MetricChart({ definition, series, median }: Props) {
             labelFormatter={(label) => (typeof label === 'number' ? formatDateTime(label) : label)}
             formatter={(value) => [
               typeof value === 'number' ? withUnit(formatValue(value), definition.unit) : 'Missing',
-              definition.label,
+              label,
             ]}
-            contentStyle={{ border: `1px solid ${CHART_COLORS.ink}`, borderRadius: 0 }}
+            contentStyle={{ border: `1px solid ${CHART_COLORS.rule}`, borderRadius: 6, background: CHART_COLORS.surface, color: CHART_COLORS.ink }}
           />
           {median !== null && (
             <ReferenceLine
               y={median}
               stroke={CHART_COLORS.accent}
               strokeWidth={2}
-              label={{ value: `Median ${formatValue(median)}`, position: 'insideTopLeft', fill: CHART_COLORS.accent, fontSize: 12 }}
+              label={{ value: t('mch.median', { value: formatValue(median) }), position: 'insideTopLeft', fill: CHART_COLORS.accent, fontSize: 12 }}
             />
           )}
           <Line
