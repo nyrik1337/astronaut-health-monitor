@@ -14,6 +14,8 @@ import urllib.request
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base-url', default='http://127.0.0.1:8000')
+    parser.add_argument('--scenario', choices=['missing', 'heart-rate-62'], default='missing',
+                        help='Synthetic fixtures only; manually review the model prose for contradictions.')
     args = parser.parse_args()
     payload = {
         'subject_id': 'synthetic-smoke-crew', 'mode': 'simulation',
@@ -28,6 +30,14 @@ def main():
                            'source': {'kind': 'simulated', 'source_id': 'synthetic-smoke-fixture'}},
         'observations': [], 'notices': [],
     }
+    if args.scenario == 'heart-rate-62':
+        payload['question'] = ('What do the available measurements tell us about fatigue? '
+                               'Is a personal baseline available for this assessment?')
+        payload['evidence']['observations'] = [{
+            'kind': 'heart_rate', 'observed_at': payload['as_of'], 'value': 62,
+            'source': {'kind': 'simulated', 'source_id': 'synthetic-smoke-fixture'},
+            'quality': {'status': 'unknown', 'reasons': []},
+        }]
     request = urllib.request.Request(args.base_url.rstrip('/') + '/api/assistant/chat',
                                      data=json.dumps(payload).encode(),
                                      headers={'Content-Type': 'application/json'})
@@ -49,6 +59,12 @@ def main():
     assert result['mode'] == 'simulation' and result['provenance'] == 'synthetic_demonstration'
     assert result['evidence']['assessment_status'] == 'missing_data'
     assert result['cognitive'] is None and result['answer'].strip()
+    if args.scenario == 'heart-rate-62':
+        pulse = result['evidence']['evidence'][0]
+        assert pulse['value'] == 62 and pulse['status'] == 'available'
+        assert pulse['quality']['status'] == 'unknown'
+    print('Transport and deterministic fields checked. Manually review answer accuracy; '
+          'this smoke test does not prove generation reliability.')
     return 0
 
 
