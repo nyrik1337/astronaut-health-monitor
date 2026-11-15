@@ -1,5 +1,6 @@
 import type { AssistantResponse } from '../assistant/types';
-import { TextList } from '../fatigueView/EvidenceResult';
+import { CognitiveResult } from '../fatigueView/CognitiveResult';
+import { EvidenceResult, TextList } from '../fatigueView/EvidenceResult';
 
 const PROVENANCE_LABEL: Record<AssistantResponse['provenance'], string> = {
   synthetic_demonstration: 'Synthetic demonstration',
@@ -43,6 +44,13 @@ export function AssistantAnswer({ response, speaking, speechSupported, onSpeak, 
       </div>
       <TextList title="Limitations" items={response.limitations} />
       <p className="assistant__disclaimer">{response.disclaimer}</p>
+      {(response.evidence !== null || response.cognitive !== null) && (
+        <details className="assistant__assessments" open data-testid="assistant-assessments">
+          <summary>Assessment recomputed by the backend for this answer (deterministic, authoritative)</summary>
+          {response.evidence !== null && <EvidenceResult response={response.evidence} />}
+          {response.cognitive !== null && <CognitiveResult response={response.cognitive} />}
+        </details>
+      )}
     </div>
   );
 }

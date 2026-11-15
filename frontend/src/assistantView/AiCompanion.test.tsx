@@ -6,7 +6,7 @@ import { notConnectedAssistantClient, type AssistantClient } from '../assistant/
 import type { AssistantContext } from '../assistant/context';
 import type { AssistantRequest, AssistantResponse } from '../assistant/types';
 import { createMockExtensionClient } from '../cognitive/client';
-import { MISSION_CLOCK, syntheticSubjectId } from '../cognitive/syntheticStore';
+import { MISSION_CLOCK, syntheticEvidenceRequest, syntheticSubjectId } from '../cognitive/syntheticStore';
 import { UTC_CLOCK, type Mode } from '../cognitive/types';
 import { FatigueView } from '../fatigueView/FatigueView';
 import { AiCompanion } from './AiCompanion';
@@ -133,6 +133,21 @@ describe('AI Companion chat', () => {
       cognitive: null,
       gentle_breathing_available: true,
     });
+  });
+
+  test('shows the recomputed missing and poor-quality evidence returned with the answer', async () => {
+    const evidenceRequest = syntheticEvidenceRequest({ crew: 'B', day: 70, heartRate: null, sleepHours: null, reactionMedianMs: null });
+    const evidence = await createMockExtensionClient().assessEvidence(evidenceRequest);
+    const fake = fakeAssistant((r) => Promise.resolve({ ...answer(r), evidence }));
+    render(<AiCompanion contexts={contexts()} client={fake.client} />);
+    fireEvent.click(screen.getByRole('button', { name: 'What evidence is missing?' }));
+    const shown = await screen.findByTestId('assistant-assessments');
+    expect(within(shown).getByTestId('evidence-result')).toBeInTheDocument();
+    for (const item of evidence.evidence.filter((e) => e.status !== 'available')) {
+      expect(within(shown).getByText((_, el) => el?.getAttribute('data-kind') === item.kind)).toBeInTheDocument();
+    }
+    expect(evidence.evidence.some((e) => e.status === 'missing_data')).toBe(true);
+    expect(within(shown).getAllByText('Missing').length).toBeGreaterThan(0);
   });
 
   test('without a connected backend nothing is sent and no answer is simulated', () => {
