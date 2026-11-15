@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { PRACTICE, SCORED, SYMBOLS, scoreRun, type OneBackScore, type Rng, type Stage } from './oneBack';
 import { useOneBack } from './useOneBack';
+import { Rich, useT } from '../i18n';
 
 const percent = (value: number): string => `${Math.round(value * 100)}%`;
 
 const STATUS_TEXT = {
-  stopped: 'Stopped. No score is shown for an unfinished run.',
-  invalidated: 'Run invalidated because this tab or window lost focus. No score is shown; you can restart.',
+  stopped: 'wm.stopped',
+  invalidated: 'wm.invalidated',
 } as const;
 
 /**
@@ -15,6 +16,7 @@ const STATUS_TEXT = {
  * or the AI Companion, and they are not a clinically validated measure.
  */
 export function WorkingMemoryCheck({ rng }: { rng?: Rng }) {
+  const { t } = useT();
   const task = useOneBack(rng);
   const [practiceScore, setPracticeScore] = useState<OneBackScore | null>(null);
   const [scored, setScored] = useState<OneBackScore | null>(null);
@@ -43,37 +45,36 @@ export function WorkingMemoryCheck({ rng }: { rng?: Rng }) {
   return (
     <div className="fatigue-panel working-memory" data-testid="working-memory">
       <p>
-        <span className="tag">Experimental — not clinically validated</span> A short 1-back task. Symbols appear one at a
-        time. Press <kbd>Space</kbd> or the <strong>Match</strong> button only when the symbol is the{' '}
-        <strong>same as the one just before it</strong>. The first symbol is a warm-up and is never scored.
+        <span className="tag">{t('wm.tag')}</span> <Rich text={t('wm.intro')} />
       </p>
       <p className="muted">
-        Each symbol is shown for 1.5 s, followed by a short gap (2 s per symbol). The practice has {PRACTICE.scoredTrials}{' '}
-        scored symbols with {PRACTICE.matches} matches; the main run has {SCORED.scoredTrials} scored symbols with exactly{' '}
-        {SCORED.matches} matches, in random positions. Switching tabs or windows stops the run without a score. Results
-        stay in this page’s memory only and are not added to your reaction-time history, baseline, evidence or AI
-        Companion. Browser timing is uncalibrated, so this is not a measure of medical or operational performance.
+        {t('wm.details', {
+          practiceTrials: PRACTICE.scoredTrials,
+          practiceMatches: PRACTICE.matches,
+          trials: SCORED.scoredTrials,
+          matches: SCORED.matches,
+        })}
       </p>
 
       <div className="button-row">
         {!running && (
           <button type="button" className="button" onClick={() => begin('practice')}>
-            {practiceScore ? 'Repeat practice' : 'Start practice'}
+            {practiceScore ? t('wm.repeatPractice') : t('wm.startPractice')}
           </button>
         )}
         {!running && (
           <button type="button" className="button button--primary" onClick={() => begin('scored')}>
-            {scored ? 'Start a new scored run' : 'Start scored run'}
+            {scored ? t('wm.newScored') : t('wm.startScored')}
           </button>
         )}
         {running && (
           <button type="button" className="button" onClick={task.stop}>
-            Stop
+            {t('wm.stop')}
           </button>
         )}
         {!running && (practiceScore || scored || run) && (
           <button type="button" className="button" onClick={restart}>
-            Restart
+            {t('wm.restart')}
           </button>
         )}
       </div>
@@ -81,20 +82,20 @@ export function WorkingMemoryCheck({ rng }: { rng?: Rng }) {
       {running && run && (
         <div className="reaction-check">
           <p className="muted" data-testid="working-memory-progress">
-            {run.stage === 'practice' ? 'Practice' : 'Scored run'} · symbol {run.index + 1} of {run.sequence.length}
-            {run.index === 0 ? ' (warm-up, not scored)' : ''}
+            {t('wm.progress', { stage: t(`wm.stage.${run.stage}`), n: run.index + 1, total: run.sequence.length })}
+            {run.index === 0 ? t('wm.warmup') : ''}
           </p>
           <div className="reaction-check__area" data-testid="working-memory-stimulus">
             <span className="working-memory__symbol" aria-hidden="true">
               {symbol?.glyph ?? ''}
             </span>
             <span className="visually-hidden" aria-live="polite">
-              {symbol ? symbol.name : ''}
+              {symbol ? t(`wm.symbol.${symbol.name}`) : ''}
             </span>
           </div>
           <div className="button-row">
             <button type="button" className="button button--primary" onClick={task.respond} aria-pressed={pressed}>
-              {pressed ? 'Match recorded' : 'Match (Space)'}
+              {pressed ? t('wm.matched') : t('wm.match')}
             </button>
           </div>
         </div>
@@ -102,15 +103,19 @@ export function WorkingMemoryCheck({ rng }: { rng?: Rng }) {
 
       {run && (run.status === 'stopped' || run.status === 'invalidated') && (
         <p className="working-memory__notice" role="status">
-          {STATUS_TEXT[run.status]}
+          {t(STATUS_TEXT[run.status])}
         </p>
       )}
 
       {practiceScore && !running && (
         <p role="status" data-testid="working-memory-practice">
-          Practice finished: {practiceScore.correct} of {practiceScore.scoredTrials} correct ({practiceScore.hits} of{' '}
-          {practiceScore.matchTrials} matches found, {practiceScore.falseAlarms} false alarms). Practice is not kept as a
-          result.
+          {t('wm.practiceDone', {
+            correct: practiceScore.correct,
+            total: practiceScore.scoredTrials,
+            hits: practiceScore.hits,
+            matchTrials: practiceScore.matchTrials,
+            falseAlarms: practiceScore.falseAlarms,
+          })}
         </p>
       )}
 
@@ -120,34 +125,39 @@ export function WorkingMemoryCheck({ rng }: { rng?: Rng }) {
 }
 
 function ScoreSummary({ score }: { score: OneBackScore }) {
+  const { t } = useT();
+  const accuracy = percent(score.accuracy);
   return (
-    <section className="fatigue-result" aria-label="Working memory result" data-testid="working-memory-result">
+    <section className="fatigue-result" aria-label={t('wm.result')} data-testid="working-memory-result">
       <p className="fatigue-result__status" role="status">
-        Run complete: {score.correct} of {score.scoredTrials} correct ({percent(score.accuracy)} response accuracy)
+        {t('wm.complete', { correct: score.correct, total: score.scoredTrials, accuracy })}
       </p>
       <dl className="facts facts--compact">
         <div>
-          <dt>Hits (match, pressed)</dt>
+          <dt>{t('wm.hits')}</dt>
           <dd className="numeric">{score.hits}</dd>
         </div>
         <div>
-          <dt>Misses (match, not pressed)</dt>
+          <dt>{t('wm.misses')}</dt>
           <dd className="numeric">{score.misses}</dd>
         </div>
         <div>
-          <dt>False alarms (no match, pressed)</dt>
+          <dt>{t('wm.falseAlarms')}</dt>
           <dd className="numeric">{score.falseAlarms}</dd>
         </div>
         <div>
-          <dt>Correct rejections (no match, not pressed)</dt>
+          <dt>{t('wm.rejections')}</dt>
           <dd className="numeric">{score.correctRejections}</dd>
         </div>
       </dl>
       <p className="muted">
-        How it is calculated: number correct = hits + correct rejections = {score.hits} + {score.correctRejections} ={' '}
-        {score.correct}. Response accuracy = number correct ÷ {score.scoredTrials} scored symbols ={' '}
-        {percent(score.accuracy)}. The warm-up symbol is not counted. Experimental and not clinically validated; it
-        is not compared with any baseline and is not a diagnosis or a fitness-for-duty decision.
+        {t('wm.how', {
+          hits: score.hits,
+          rejections: score.correctRejections,
+          correct: score.correct,
+          total: score.scoredTrials,
+          accuracy,
+        })}
       </p>
     </section>
   );

@@ -1,7 +1,6 @@
-import { domainLabels, stateLabels } from '../mission/explain';
 import { CREW_IDS, DOMAIN_IDS } from '../mission/types';
 import type { CellState, CrewId, DomainId } from '../mission/types';
-import { SHORT_STATE, crewLabel } from './labels';
+import { useT } from '../i18n';
 
 export interface CellSelection {
   readonly crew: CrewId;
@@ -17,23 +16,23 @@ type Props = {
 };
 
 export function CrewGrid({ day, grid, selected, onSelect }: Props) {
+  const { t } = useT();
   return (
     <section className="crew-grid" aria-labelledby="crew-grid-heading">
       <h3 id="crew-grid-heading" className="section-heading">
-        Signal category by crew member and domain
+        {t('cg.title')}
       </h3>
       <div className="crew-grid__scroll">
         <table>
           <caption className="visually-hidden">
-            Signal categories on day {day} for four synthetic crew members. Select a cell for
-            measurement details.
+            {t('cg.caption', { day })}
           </caption>
           <thead>
             <tr>
-              <th scope="col">Crew</th>
+              <th scope="col">{t('cg.crew')}</th>
               {DOMAIN_IDS.map((domain) => (
                 <th key={domain} scope="col">
-                  {domainLabels[domain]}
+                  {t(`domain.${domain}`)}
                 </th>
               ))}
             </tr>
@@ -41,7 +40,7 @@ export function CrewGrid({ day, grid, selected, onSelect }: Props) {
           <tbody>
             {CREW_IDS.map((crew, crewIndex) => (
               <tr key={crew}>
-                <th scope="row">{crewLabel(crew)}</th>
+                <th scope="row">{t('cg.member', { crew })}</th>
                 {DOMAIN_IDS.map((domain, domainIndex) => {
                   const state = grid[crewIndex]?.[domainIndex] ?? 'no_data';
                   const isSelected = selected?.crew === crew && selected.domain === domain;
@@ -52,11 +51,11 @@ export function CrewGrid({ day, grid, selected, onSelect }: Props) {
                         className="crew-cell"
                         data-state={state}
                         aria-pressed={isSelected}
-                        aria-label={`${crewLabel(crew)}, ${domainLabels[domain]}: ${stateLabels[state]}. Show measurement details`}
+                        aria-label={t('cg.cell', { crew: t('cg.member', { crew }), domain: t(`domain.${domain}`), state: t(`state.${state}`) })}
                         onClick={() => onSelect({ crew, domain })}
                       >
                         <span className="crew-cell__marker" aria-hidden="true" />
-                        <span aria-hidden="true">{SHORT_STATE[state]}</span>
+                        <span aria-hidden="true">{t(`short.${state}`)}</span>
                       </button>
                     </td>
                   );

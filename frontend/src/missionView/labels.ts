@@ -3,6 +3,7 @@
  * non-diagnostic, no instructions, and synthetic data is always named as such.
  */
 import { GROUPING_HOLD_DAYS } from '../mission/closedLoop';
+import type { TFn } from '../i18n';
 import type { AlertView, CellState, CrewId, DetectionView, ScenarioId } from '../mission/types';
 
 export const REPLAY_NOTICE =
@@ -71,6 +72,43 @@ export function waitingText(alert: AlertView, day: number): string {
   return day < holdEnd
     ? `Detected on day ${alert.detectedDay}; grouping check until day ${holdEnd}.`
     : `Detected on day ${alert.detectedDay}; waiting for the daily alert budget.`;
+}
+
+/* ---- Translated variants used by the components (the English maps above stay for tests/engine). ---- */
+
+export const crewLabelT = (crew: CrewId, t: TFn): string => t('cg.member', { crew });
+
+export const detectionKindLabelT = (d: DetectionView, t: TFn): string =>
+  d.kind === 'drift' ? t('det.drift') : t('det.spike');
+
+export function detectionStatusTextT(d: DetectionView, notifiedDay: number | null, t: TFn): string {
+  switch (d.status) {
+    case 'pending_grouping_check':
+      return t('det.pending_grouping_check', { day: d.decisionDay });
+    case 'notified':
+      return notifiedDay === null ? t('det.notified') : t('det.notifiedOn', { day: notifiedDay });
+    default:
+      return t(`det.${d.status}`);
+  }
+}
+
+export function delayTextT(alert: AlertView, t: TFn): string | null {
+  const delay = alert.day - alert.detectedDay;
+  if (delay <= 0) return null;
+  const hold = alert.kind === 'drift' ? Math.min(delay, GROUPING_HOLD_DAYS) : 0;
+  const budget = delay - hold;
+  const parts: string[] = [];
+  const dayCount = (n: number): string => t(n === 1 ? 'unit.day' : 'unit.days', { n });
+  if (hold > 0) parts.push(t('delay.hold', { days: dayCount(hold) }));
+  if (budget > 0) parts.push(t('delay.budget', { days: dayCount(budget) }));
+  return `${t('delay.detected', { day: alert.detectedDay })} ${parts.join(', ')}.`;
+}
+
+export function waitingTextT(alert: AlertView, day: number, t: TFn): string {
+  const holdEnd = alert.detectedDay + (alert.kind === 'drift' ? GROUPING_HOLD_DAYS : 0);
+  return day < holdEnd
+    ? t('wait.grouping', { day: alert.detectedDay, until: holdEnd })
+    : t('wait.budget', { day: alert.detectedDay });
 }
 
 export const formatValue = (value: number | null, decimals: number): string =>

@@ -1,13 +1,14 @@
 import { useRef, type KeyboardEvent } from 'react';
+import { useT, type TKey } from '../i18n';
 import './viewTabs.css';
 
 export type ViewId = 'dashboard' | 'mission' | 'fatigue' | 'recovery';
 
-export const VIEWS: readonly { readonly id: ViewId; readonly label: string }[] = [
-  { id: 'dashboard', label: 'Vital signs dashboard' },
-  { id: 'mission', label: 'Mission simulation (synthetic replay)' },
-  { id: 'fatigue', label: 'Fatigue evidence (experimental)' },
-  { id: 'recovery', label: 'Stress check-in and breathing (experimental)' },
+export const VIEWS: readonly { readonly id: ViewId; readonly label: TKey }[] = [
+  { id: 'dashboard', label: 'shell.tab.dashboard' },
+  { id: 'mission', label: 'shell.tab.mission' },
+  { id: 'fatigue', label: 'shell.tab.fatigue' },
+  { id: 'recovery', label: 'shell.tab.recovery' },
 ];
 
 export const tabId = (view: ViewId): string => `view-tab-${view}`;
@@ -20,6 +21,7 @@ type Props = {
 
 /** Tabs for switching views; arrow keys, Home and End move between tabs (WAI-ARIA tabs). */
 export function ViewTabs({ value, onChange }: Props) {
+  const { t } = useT();
   const refs = useRef(new Map<ViewId, HTMLButtonElement>());
 
   const select = (index: number): void => {
@@ -43,7 +45,7 @@ export function ViewTabs({ value, onChange }: Props) {
   };
 
   return (
-    <div className="view-tabs" role="tablist" aria-label="Views">
+    <div className="view-tabs" role="tablist" aria-label={t('shell.views')}>
       {VIEWS.map((view, index) => {
         const selected = view.id === value;
         return (
@@ -63,7 +65,7 @@ export function ViewTabs({ value, onChange }: Props) {
             onClick={() => onChange(view.id)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
-            {view.label}
+            {t(view.label)}
           </button>
         );
       })}

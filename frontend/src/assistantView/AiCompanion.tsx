@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { type ApiError, isAbortError, toApiError } from '../api/errors';
 import { assistantClient as defaultClient, type AssistantClient } from '../assistant/client';
 import { buildAssistantRequest, contextKey, type AssistantContext } from '../assistant/context';
-import { assistantErrorMessage } from '../assistant/errors';
+import { assistantErrorText } from '../assistant/errors';
+import { useT, type TKey } from '../i18n';
 import { MAX_QUESTION_LENGTH, type AssistantResponse } from '../assistant/types';
 import type { Mode } from '../cognitive/types';
 import { AssistantAnswer } from './AssistantAnswer';
@@ -10,6 +11,9 @@ import { useSpeech } from './useSpeech';
 import './assistant.css';
 
 export const MODEL_LABEL = 'Qwen3 4B (local)';
+
+/** Example questions are sent in the language currently shown. */
+export const EXAMPLE_QUESTION_KEYS: readonly TKey[] = ['ai.example.1', 'ai.example.2', 'ai.example.3'];
 
 export const EXAMPLE_QUESTIONS = [
   'What evidence is missing?',
@@ -25,7 +29,7 @@ export const MODE_CONTEXT_LABEL: Record<Mode, string> = {
 type Message =
   | { readonly id: string; readonly question: string; readonly mode: Mode; readonly subject: string; readonly status: 'pending' }
   | { readonly id: string; readonly question: string; readonly mode: Mode; readonly subject: string; readonly status: 'answered'; readonly response: AssistantResponse }
-  | { readonly id: string; readonly question: string; readonly mode: Mode; readonly subject: string; readonly status: 'failed'; readonly error: ApiError | null; readonly note: string };
+  | { readonly id: string; readonly question: string; readonly mode: Mode; readonly subject: string; readonly status: 'failed'; readonly error: ApiError | null };
 
 type Props = {
   contexts: Readonly<Record<Mode, AssistantContext | null>>;
@@ -43,6 +47,7 @@ const newId = (): string => `msg-${(nextId += 1)}`;
  * values. Conversation history lives in memory for this page only.
  */
 export function AiCompanion({ contexts, client = defaultClient, now = () => Date.now(), gentleBreathingAvailable = true }: Props) {
+  const { t } = useT();
   const [mode, setMode] = useState<Mode>('simulation');
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<readonly Message[]>([]);
@@ -82,7 +87,6 @@ export function AiCompanion({ contexts, client = defaultClient, now = () => Date
         ...base,
         status: 'failed',
         error: apiError,
-        note: apiError === null ? 'Cancelled because the subject, mode or clock changed.' : assistantErrorMessage(apiError),
       });
     } finally {
       if (pending.current?.id === id) pending.current = null;
@@ -106,50 +110,48 @@ export function AiCompanion({ contexts, client = defaultClient, now = () => Date
   return (
     <div className="assistant" data-testid="ai-companion">
       <p className="assistant__meta">
-        <span className="tag">Experimental</span> Model: <strong data-testid="assistant-model">{MODEL_LABEL}</strong>. Answers
-        are AI-generated explanations of the assessment shown above. They can be wrong, and they are not a medical
-        diagnosis or a fitness-for-duty decision. For serious or urgent symptoms, contact qualified crew medical
-        personnel.
+        <span className="tag">{t('ai.experimental')}</span> {t('ai.model')}{' '}
+        <strong data-testid="assistant-model">{MODEL_LABEL}</strong>. {t('ai.meta')}
       </p>
       {!connected && (
         <p className="assistant__offline" role="status" data-testid="assistant-not-connected">
-          The AI Companion backend is not connected in this build, so no answers are generated. Nothing here is a
-          simulated AI reply.
+          {t('ai.notConnected')}
         </p>
       )}
 
       <fieldset className="assistant__mode">
-        <legend>Ask about</legend>
+        <legend>{t('ai.askAbout')}</legend>
         {(['simulation', 'real_assessment'] as const).map((m) => (
           <label key={m}>
             <input type="radio" name="assistant-mode" value={m} checked={mode === m} onChange={() => setMode(m)} />{' '}
-            {MODE_CONTEXT_LABEL[m]}
+            {t(`ai.mode.${m}`)}
           </label>
         ))}
       </fieldset>
       <p className="muted" data-testid="assistant-context">
         {context === null ? (
-          'This assessment context is not ready yet.'
+          t('ai.context.none')
         ) : (
           <>
-            Subject <code>{context.subject_id}</code> · Evidence Navigator result:{' '}
-            {context.evidence === null ? 'not run yet' : 'included'} · Reaction-time result:{' '}
-            {context.cognitive === null ? 'not run yet' : 'included'}
+            {t('ai.context.subject')} <code>{context.subject_id}</code> · {t('ai.context.evidence')}{' '}
+            {context.evidence === null ? t('ai.context.notRun') : t('ai.context.included')} · {t('ai.context.cognitive')}{' '}
+            {context.cognitive === null ? t('ai.context.notRun') : t('ai.context.included')}
           </>
         )}
       </p>
 
-      <ol className="assistant__log" aria-label="Conversation" aria-live="polite">
+      <ol className="assistant__log" aria-label={t('ai.log')} aria-live="polite">
         {messages.map((m) => (
           <li key={m.id} className="assistant__turn" data-status={m.status}>
             <p className="assistant__question">
-              <span className="tag">{m.mode === 'simulation' ? 'Synthetic simulation' : 'Real participant'}</span> You
-              asked about <code>{m.subject}</code>: {m.question}
+              <span className="tag">{t(`ai.tag.${m.mode}`)}</span> {t('ai.asked')} <code>{m.subject}</code>:{' '}
+              {m.question}
             </p>
-            {m.status === 'pending' && <p className="muted">Waiting for {MODEL_LABEL}…</p>}
+            {m.status === 'pending' && <p className="muted">{t('ai.waiting', { model: MODEL_LABEL })}</p>}
             {m.status === 'failed' && (
               <p className="assistant__error" role="alert">
-                <strong>No AI answer.</strong> {m.note}
+                <strong>{t('ai.noAnswer')}</strong>{' '}
+                {m.error === null ? t('ai.cancelled') : assistantErrorText(m.error, t)}
               </p>
             )}
             {m.status === 'answered' && (
@@ -165,15 +167,16 @@ export function AiCompanion({ contexts, client = defaultClient, now = () => Date
         ))}
       </ol>
 
-      <div className="button-row" aria-label="Example questions">
-        {EXAMPLE_QUESTIONS.map((q) => (
-          <button key={q} type="button" className="button" disabled={!connected || busy || context === null} onClick={() => void ask(q)}>
-            {q}
+      <div className="button-row" role="group" aria-label={t('ai.examples')}>
+        {EXAMPLE_QUESTION_KEYS.map((key) => (
+          <button key={key} type="button" className="button" disabled={!connected || busy || context === null} onClick={() => void ask(t(key))}>
+            {t(key)}
           </button>
         ))}
       </div>
       <form className="assistant__form" onSubmit={onSubmit}>
-        <label htmlFor="assistant-question">Your question</label>
+        <label htmlFor="assistant-question">{t('ai.question')}</label>
+        <p className="muted">{t('ai.answerLang')}</p>
         <textarea
           id="assistant-question"
           rows={2}
@@ -182,13 +185,13 @@ export function AiCompanion({ contexts, client = defaultClient, now = () => Date
           aria-invalid={tooLong}
           disabled={!connected}
         />
-        {tooLong && <p className="assistant__error">Questions can be at most {MAX_QUESTION_LENGTH} characters.</p>}
+        {tooLong && <p className="assistant__error">{t('ai.tooLong', { max: MAX_QUESTION_LENGTH })}</p>}
         <div className="button-row">
           <button type="submit" className="button button--primary" disabled={!canSend}>
-            {busy ? 'Waiting for answer…' : 'Send'}
+            {busy ? t('ai.sending') : t('ai.send')}
           </button>
           <button type="button" className="button" onClick={clear} disabled={messages.length === 0}>
-            Clear conversation
+            {t('ai.clear')}
           </button>
         </div>
       </form>

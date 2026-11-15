@@ -6,6 +6,8 @@ import { DemoControls } from './components/DemoControls';
 import { MetricPanel } from './components/MetricPanel';
 import { panelId, tabId, type ViewId, ViewTabs } from './components/ViewTabs';
 import { WarningList } from './components/WarningList';
+import { DemoJourney } from './components/DemoJourney';
+import { LanguageProvider, LanguageSwitch, useT, type TKey } from './i18n';
 import { DEMO_SUBJECT_ID } from './demo/synthetic';
 import { analysisForReading, metricAnalysisView } from './domain/analysisView';
 import { DEMO_METRICS } from './domain/metrics';
@@ -18,8 +20,6 @@ type Props = {
   client?: ApiClient;
 };
 
-const SYNTHETIC_DATA_NOTICE =
-  'All readings on this page are synthetic demo data generated in the browser. They are not from a real person or sensor.';
 
 /** The synthetic mission replay is a separate chunk, loaded the first time its view is opened. */
 const MissionView = lazy(() => import('./missionView/MissionView'));
@@ -28,14 +28,24 @@ const FatigueView = lazy(() => import('./fatigueView/FatigueView'));
 /** MindGuard stress check-in and relaxed breathing, loaded only when first opened. */
 const RecoveryView = lazy(() => import('./recoveryView/RecoveryView'));
 
-const SKIP_LINKS: Record<ViewId, { href: string; label: string }> = {
-  dashboard: { href: '#main', label: 'Skip to dashboard' },
-  mission: { href: '#mission', label: 'Skip to mission simulation' },
-  fatigue: { href: '#fatigue', label: 'Skip to fatigue evidence' },
-  recovery: { href: '#recovery', label: 'Skip to stress check-in' },
+const SKIP_LINKS: Record<ViewId, { href: string; label: TKey }> = {
+  dashboard: { href: '#main', label: 'shell.skip.dashboard' },
+  mission: { href: '#mission', label: 'shell.skip.mission' },
+  fatigue: { href: '#fatigue', label: 'shell.skip.fatigue' },
+  recovery: { href: '#recovery', label: 'shell.skip.recovery' },
 };
 
-export function App({ client = apiClient }: Props) {
+/** The language lives above all views, so switching it never remounts or resets them. */
+export function App(props: Props) {
+  return (
+    <LanguageProvider>
+      <AppShell {...props} />
+    </LanguageProvider>
+  );
+}
+
+function AppShell({ client = apiClient }: Props) {
+  const { t } = useT();
   const [view, setView] = useState<ViewId>('dashboard');
   const [opened, setOpened] = useState<ReadonlySet<ViewId>>(() => new Set(['dashboard']));
   const missionOpened = opened.has('mission');
@@ -57,20 +67,25 @@ export function App({ client = apiClient }: Props) {
   return (
     <>
       <a className="skip-link" href={SKIP_LINKS[view].href}>
-        {SKIP_LINKS[view].label}
+        {t(SKIP_LINKS[view].label)}
       </a>
       <header className="masthead">
         <div className="masthead__title">
-          <h1>Astronaut Health Monitor</h1>
+          <p className="masthead__brand">{t('shell.brand')}</p>
+          <h1>{t('shell.title')}</h1>
           <p className="masthead__subject">
-            Subject <code>{DEMO_SUBJECT_ID}</code>
-            <span className="tag">Synthetic demo data</span>
+            {t('shell.subject')} <code>{DEMO_SUBJECT_ID}</code>
+            <span className="tag">{t('shell.syntheticTag')}</span>
           </p>
         </div>
-        <BackendStatus state={health.state} baseUrl={client.baseUrl} onRecheck={health.recheck} />
+        <div className="masthead__tools">
+          <LanguageSwitch />
+          <BackendStatus state={health.state} baseUrl={client.baseUrl} onRecheck={health.recheck} />
+        </div>
       </header>
 
       <ViewTabs value={view} onChange={selectView} />
+      <DemoJourney onGo={selectView} />
 
       <div
         role="tabpanel"
@@ -97,7 +112,7 @@ export function App({ client = apiClient }: Props) {
 
         <section aria-labelledby="vitals-heading" className="vitals">
           <h2 id="vitals-heading" className="section-heading">
-            Vital signs compared with personal history
+            {t('db.vitals')}
           </h2>
           {DEMO_METRICS.map((definition, index) => (
             <MetricPanel
@@ -122,7 +137,7 @@ export function App({ client = apiClient }: Props) {
       >
         {missionOpened && (
           <main id="mission" className="layout" aria-labelledby="mission-heading">
-            <Suspense fallback={<p>Loading the synthetic mission replay…</p>}>
+            <Suspense fallback={<p>{t('shell.loading.mission')}</p>}>
               <MissionView />
             </Suspense>
           </main>
@@ -137,7 +152,7 @@ export function App({ client = apiClient }: Props) {
       >
         {fatigueOpened && (
           <main id="fatigue" className="layout" aria-labelledby="fatigue-heading">
-            <Suspense fallback={<p>Loading the fatigue evidence view…</p>}>
+            <Suspense fallback={<p>{t('shell.loading.fatigue')}</p>}>
               <FatigueView />
             </Suspense>
           </main>
@@ -152,7 +167,7 @@ export function App({ client = apiClient }: Props) {
       >
         {recoveryOpened && (
           <main id="recovery" className="layout" aria-labelledby="recovery-heading">
-            <Suspense fallback={<p>Loading the stress check-in…</p>}>
+            <Suspense fallback={<p>{t('shell.loading.recovery')}</p>}>
               <RecoveryView />
             </Suspense>
           </main>
@@ -161,7 +176,8 @@ export function App({ client = apiClient }: Props) {
 
       <footer className="footer">
         {result !== null && <p>{result.disclaimer}</p>}
-        <p>{SYNTHETIC_DATA_NOTICE}</p>
+        <p>{t('shell.syntheticNotice')}</p>
+        <p>{t('shell.backendText')}</p>
       </footer>
     </>
   );

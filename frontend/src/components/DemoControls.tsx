@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react';
 import { SCENARIOS, type ScenarioId } from '../demo/synthetic';
 import { formatDateTime } from '../domain/format';
 import type { Reading } from '../domain/readings';
+import { useT } from '../i18n';
 
 type Props = {
   scenario: ScenarioId;
@@ -16,7 +17,7 @@ function isScenarioId(value: string): value is ScenarioId {
 }
 
 export function DemoControls({ scenario, readings, onSelectScenario, onAddReading, onReset }: Props) {
-  const definition = SCENARIOS.find((item) => item.id === scenario);
+  const { t } = useT();
   const newest = readings.at(-1);
 
   const handleScenarioChange = (event: ChangeEvent<HTMLSelectElement>): void => {
@@ -28,37 +29,37 @@ export function DemoControls({ scenario, readings, onSelectScenario, onAddReadin
   return (
     <section className="demo" aria-labelledby="demo-heading">
       <h2 id="demo-heading" className="section-heading">
-        Synthetic demo readings
+        {t('demo.title')}
       </h2>
       <p className="demo__note">
-        Generated in this browser for demonstration. Not from a real person or sensor.
+        {t('demo.note')}
       </p>
       <div className="field">
-        <label htmlFor="scenario-select">Scenario</label>
+        <label htmlFor="scenario-select">{t('demo.scenario')}</label>
         <select id="scenario-select" value={scenario} onChange={handleScenarioChange} aria-describedby="scenario-description">
           {SCENARIOS.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.label}
+              {t(`demo.${item.id}.label`)}
             </option>
           ))}
         </select>
         <p id="scenario-description" className="muted">
-          {definition?.description}
+          {t(`demo.${scenario}.description`)}
         </p>
       </div>
       <p className="demo__count">
-        <span className="numeric">{readings.length}</span> readings
-        {newest !== undefined && <> · newest {formatDateTime(newest.timestamp)}</>}
+        <span className="numeric">{readings.length}</span> {t('demo.count')}
+        {newest !== undefined && <> · {t('demo.newest', { time: formatDateTime(newest.timestamp) })}</>}
       </p>
       <div className="button-row">
         <button type="button" className="button button--primary" onClick={() => onAddReading()}>
-          Add reading
+          {t('demo.add')}
         </button>
         <button type="button" className="button" onClick={() => onAddReading(['spo2_percent'])}>
-          Add reading without SpO₂
+          {t('demo.addNoSpo2')}
         </button>
         <button type="button" className="button" onClick={onReset}>
-          Reset scenario
+          {t('demo.reset')}
         </button>
       </div>
     </section>

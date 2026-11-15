@@ -4,6 +4,7 @@ import type { AssistantContext } from '../assistant/context';
 import { AiCompanion } from '../assistantView/AiCompanion';
 import { extensionClient, type ExtensionClient } from '../cognitive/client';
 import type { Mode } from '../cognitive/types';
+import { Rich, useT } from '../i18n';
 import { RealPanel } from './RealPanel';
 import { WorkingMemoryCheck } from '../workingMemory/WorkingMemoryCheck';
 import { SyntheticPanel } from './SyntheticPanel';
@@ -23,6 +24,7 @@ type Props = {
  * real participant's browser check. Neither gives a diagnosis or a fitness-for-duty decision.
  */
 export function FatigueView({ client = extensionClient, userAgent, now, storage, assistantClient }: Props) {
+  const { t } = useT();
   const [contexts, setContexts] = useState<Readonly<Record<Mode, AssistantContext | null>>>({
     simulation: null,
     real_assessment: null,
@@ -33,41 +35,48 @@ export function FatigueView({ client = extensionClient, userAgent, now, storage,
     <div className="fatigue">
       <div className="mission__intro">
         <h2 id="fatigue-heading" className="mission__title">
-          Fatigue evidence
+          {t('fatigue.title')}
         </h2>
         <p className="mission__notice">
-          When fatigue is reported, <strong>Evidence Navigator</strong> lists which evidence is available, missing or
-          stale. <strong>CognitiveGuard</strong> is an experimental reaction-time check compared only with the same
-          person’s earlier checks on the same setup. Neither gives a diagnosis, a risk score or a fitness-for-duty
-          decision, and checks are always optional.
+          <Rich text={t('fatigue.intro')} />
         </p>
         <p className="fatigue__source" data-testid="extension-source">
-          {client.source === 'mock'
-            ? 'Responses: contract-based mock in this browser — the backend routes are not available yet.'
-            : 'Responses: ORBITA backend.'}
+          {client.source === 'mock' ? t('fatigue.source.mock') : t('fatigue.source.backend')}
         </p>
+        <section className="evidence-guide" aria-labelledby="evidence-guide-heading">
+          <h3 id="evidence-guide-heading" className="fatigue-list__title">
+            {t('guide.title')}
+          </h3>
+          <ul>
+            {(['guide.available', 'guide.missing', 'guide.stale', 'guide.poor'] as const).map((key) => (
+              <li key={key}>
+                <Rich text={t(key)} />
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
       <section className="fatigue-section" aria-labelledby="synthetic-heading">
         <h3 id="synthetic-heading" className="section-heading">
-          Synthetic mission reassessment
+          {t('fatigue.h.synthetic')}
         </h3>
         <SyntheticPanel client={client} onContextChange={onSyntheticContext} />
       </section>
       <section className="fatigue-section" aria-labelledby="real-heading">
         <h3 id="real-heading" className="section-heading">
-          Real participant check
+          {t('fatigue.h.real')}
         </h3>
         <RealPanel client={client} userAgent={userAgent} now={now} storage={storage} onContextChange={onRealContext} />
       </section>
       <section className="fatigue-section" aria-labelledby="working-memory-heading">
         <h3 id="working-memory-heading" className="section-heading">
-          Working Memory (experimental)
+          {t('fatigue.h.wm')}
         </h3>
         <WorkingMemoryCheck />
       </section>
       <section className="fatigue-section" aria-labelledby="assistant-heading">
         <h3 id="assistant-heading" className="section-heading">
-          AI Companion (experimental)
+          {t('fatigue.h.ai')}
         </h3>
         <AiCompanion contexts={contexts} client={assistantClient} now={now} />
       </section>

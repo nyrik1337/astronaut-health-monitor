@@ -1,4 +1,5 @@
-import { errorTitle } from '../api/errors';
+import { useT, type TFn } from '../i18n';
+import { localizedErrorTitle } from './ErrorNotice';
 import type { HealthState } from '../hooks/useBackendHealth';
 
 type Props = {
@@ -7,28 +8,29 @@ type Props = {
   onRecheck: () => void;
 };
 
-function statusText(state: HealthState): string {
+function statusText(state: HealthState, t: TFn): string {
   switch (state.phase) {
     case 'checking':
-      return 'Checking backend…';
+      return t('backend.checking');
     case 'online':
-      return `Backend online · ${state.health.service} ${state.health.version}`;
+      return `${t('backend.online')} · ${state.health.service} ${state.health.version}`;
     case 'offline':
-      return `${errorTitle(state.error)}: ${state.error.message}`;
+      return `${localizedErrorTitle(state.error, t)}: ${state.error.message}`;
   }
 }
 
 export function BackendStatus({ state, baseUrl, onRecheck }: Props) {
+  const { t } = useT();
   return (
     <div className="backend-status" data-phase={state.phase}>
       <span className="backend-status__marker" aria-hidden="true" />
       <p role="status" aria-live="polite" className="backend-status__text">
-        {statusText(state)}
+        {statusText(state, t)}
         <span className="muted"> · {baseUrl}</span>
       </p>
       {state.phase === 'offline' && (
         <button type="button" className="button button--small" onClick={onRecheck}>
-          Check again
+          {t('backend.recheck')}
         </button>
       )}
     </div>

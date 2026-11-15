@@ -16,6 +16,7 @@ import { CallStatus } from './CallStatus';
 import { CognitiveResult } from './CognitiveResult';
 import { EvidenceResult } from './EvidenceResult';
 import { useExtensionCall } from './useExtensionCall';
+import { Rich, useT } from '../i18n';
 
 const FIRST_DAY = 31;
 const round = (value: number | undefined, decimals: number): number | null =>
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export function SyntheticPanel({ client, onContextChange }: Props) {
+  const { t } = useT();
   const mission = useMemo(() => runMission(DEMO_SEED), []);
   const [crew, setCrew] = useState<CrewId>('B');
   const [day, setDay] = useState(70);
@@ -107,12 +109,12 @@ export function SyntheticPanel({ client, onContextChange }: Props) {
   return (
     <div className="fatigue-panel" data-mode="simulation">
       <p>
-        <span className="tag">Synthetic demonstration</span> Subject <code>{syntheticSubjectId(crew)}</code> · mission
-        clock <code>{MISSION_CLOCK.id}</code>, day {day}. Not a real person; scripted synthetic data only.
+        <span className="tag">{t('syn.tag')}</span>{' '}
+        <Rich text={t('syn.intro', { subject: syntheticSubjectId(crew), clock: MISSION_CLOCK.id, day })} />
       </p>
       <div className="fatigue-controls">
         <div className="field">
-          <label htmlFor="synthetic-crew">Synthetic crew member</label>
+          <label htmlFor="synthetic-crew">{t('syn.crew')}</label>
           <select
             id="synthetic-crew"
             value={crew}
@@ -123,22 +125,22 @@ export function SyntheticPanel({ client, onContextChange }: Props) {
           >
             {CREW_IDS.map((c) => (
               <option key={c} value={c}>
-                Crew member {c}
+                {t('syn.crewOption', { crew: c })}
               </option>
             ))}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="synthetic-day">Mission day</label>
+          <label htmlFor="synthetic-day">{t('syn.day')}</label>
           <input id="synthetic-day" type="number" min={FIRST_DAY} max={MISSION_DAYS} value={day} onChange={onDay} />
         </div>
       </div>
       <div className="button-row">
         <button type="button" className="button button--primary" onClick={reportFatigue}>
-          Synthetic crew member reports fatigue
+          {t('syn.report')}
         </button>
       </div>
-      <CallStatus state={evidence.state} label="Assessing evidence" onRetry={reportFatigue} />
+      <CallStatus state={evidence.state} label={t('call.evidence')} onRetry={reportFatigue} />
       {evidence.state.phase === 'success' && (
         <EvidenceResult
           response={evidence.state.data}
@@ -146,7 +148,7 @@ export function SyntheticPanel({ client, onContextChange }: Props) {
           availableChecks={['sleep_check_in', 'reaction_time_check']}
         />
       )}
-      <CallStatus state={cognitive.state} label="Analysing the synthetic reaction check" onRetry={() => void onCheck('reaction_time_check')} />
+      <CallStatus state={cognitive.state} label={t('call.synCog')} onRetry={() => void onCheck('reaction_time_check')} />
       {cognitive.state.phase === 'success' && <CognitiveResult response={cognitive.state.data} />}
     </div>
   );
