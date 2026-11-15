@@ -14,6 +14,8 @@ export type CallState<T> =
 
 export interface UseExtensionCall<Req, Res> {
   readonly state: CallState<Res>;
+  /** The request whose response is currently shown (null unless state is success). */
+  readonly shownRequest: Req | null;
   readonly run: (request: Req) => Promise<Res | null>;
   readonly reset: () => void;
 }
@@ -22,6 +24,7 @@ export function useExtensionCall<Req, Res>(
   call: (request: Req, signal: AbortSignal) => Promise<Res>,
 ): UseExtensionCall<Req, Res> {
   const [state, setState] = useState<CallState<Res>>({ phase: 'idle' });
+  const [shownRequest, setShownRequest] = useState<Req | null>(null);
   const controller = useRef<AbortController | null>(null);
 
   useEffect(() => () => controller.current?.abort(), []);
@@ -32,10 +35,12 @@ export function useExtensionCall<Req, Res>(
       const current = new AbortController();
       controller.current = current;
       setState({ phase: 'loading' });
+      setShownRequest(null);
       try {
         const data = await call(request, current.signal);
         if (current.signal.aborted) return null;
         setState({ phase: 'success', data });
+        setShownRequest(request);
         return data;
       } catch (error: unknown) {
         if (current.signal.aborted || isAbortError(error)) return null;
@@ -50,7 +55,8 @@ export function useExtensionCall<Req, Res>(
     controller.current?.abort();
     controller.current = null;
     setState({ phase: 'idle' });
+    setShownRequest(null);
   }, []);
 
-  return { state, run, reset };
+  return { state, shownRequest, run, reset };
 }

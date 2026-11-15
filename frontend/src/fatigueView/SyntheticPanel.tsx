@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import type { AssistantContext } from '../assistant/context';
 import type { ExtensionClient } from '../cognitive/client';
 import {
   MISSION_CLOCK,
@@ -25,7 +26,13 @@ const round = (value: number | undefined, decimals: number): number | null =>
  * Heart rate and sleep come from the synthetic 500-day mission; the reaction check is a scripted
  * synthetic session. Uses only the mission clock and `simulated` provenance — never real data.
  */
-export function SyntheticPanel({ client }: { client: ExtensionClient }) {
+type Props = {
+  client: ExtensionClient;
+  /** Receives the raw requests behind the results currently shown, for the AI Companion. */
+  onContextChange?: (context: AssistantContext) => void;
+};
+
+export function SyntheticPanel({ client, onContextChange }: Props) {
   const mission = useMemo(() => runMission(DEMO_SEED), []);
   const [crew, setCrew] = useState<CrewId>('B');
   const [day, setDay] = useState(70);
@@ -35,6 +42,19 @@ export function SyntheticPanel({ client }: { client: ExtensionClient }) {
   const analyze = useCallback((r: CognitiveRequest, s: AbortSignal) => client.analyzeCognitive(r, s), [client]);
   const evidence = useExtensionCall(assess);
   const cognitive = useExtensionCall(analyze);
+
+  const shownEvidence = evidence.shownRequest;
+  const shownCognitive = cognitive.shownRequest;
+  useEffect(() => {
+    onContextChange?.({
+      subject_id: syntheticSubjectId(crew),
+      mode: 'simulation',
+      clock: MISSION_CLOCK,
+      as_of: syntheticAsOf(day),
+      evidence: shownEvidence,
+      cognitive: shownCognitive,
+    });
+  }, [onContextChange, crew, day, shownEvidence, shownCognitive]);
 
   const heartRate = round(mission.generated.values[crew].cardio[day - 1], 0);
   const missionSleep = round(mission.generated.values[crew].sleep[day - 1], 1);

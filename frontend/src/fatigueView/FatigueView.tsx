@@ -1,4 +1,9 @@
+import { useCallback, useState } from 'react';
+import type { AssistantClient } from '../assistant/client';
+import type { AssistantContext } from '../assistant/context';
+import { AiCompanion } from '../assistantView/AiCompanion';
 import { extensionClient, type ExtensionClient } from '../cognitive/client';
+import type { Mode } from '../cognitive/types';
 import { RealPanel } from './RealPanel';
 import { SyntheticPanel } from './SyntheticPanel';
 import './fatigue.css';
@@ -8,6 +13,7 @@ type Props = {
   userAgent?: string;
   now?: () => number;
   storage?: Storage | null;
+  assistantClient?: AssistantClient;
 };
 
 /**
@@ -15,7 +21,13 @@ type Props = {
  * contexts with their own subject, clock and history: a synthetic mission demonstration and a
  * real participant's browser check. Neither gives a diagnosis or a fitness-for-duty decision.
  */
-export function FatigueView({ client = extensionClient, userAgent, now, storage }: Props) {
+export function FatigueView({ client = extensionClient, userAgent, now, storage, assistantClient }: Props) {
+  const [contexts, setContexts] = useState<Readonly<Record<Mode, AssistantContext | null>>>({
+    simulation: null,
+    real_assessment: null,
+  });
+  const onSyntheticContext = useCallback((c: AssistantContext) => setContexts((all) => ({ ...all, simulation: c })), []);
+  const onRealContext = useCallback((c: AssistantContext) => setContexts((all) => ({ ...all, real_assessment: c })), []);
   return (
     <div className="fatigue">
       <div className="mission__intro">
@@ -38,13 +50,19 @@ export function FatigueView({ client = extensionClient, userAgent, now, storage 
         <h3 id="synthetic-heading" className="section-heading">
           Synthetic mission reassessment
         </h3>
-        <SyntheticPanel client={client} />
+        <SyntheticPanel client={client} onContextChange={onSyntheticContext} />
       </section>
       <section className="fatigue-section" aria-labelledby="real-heading">
         <h3 id="real-heading" className="section-heading">
           Real participant check
         </h3>
-        <RealPanel client={client} userAgent={userAgent} now={now} storage={storage} />
+        <RealPanel client={client} userAgent={userAgent} now={now} storage={storage} onContextChange={onRealContext} />
+      </section>
+      <section className="fatigue-section" aria-labelledby="assistant-heading">
+        <h3 id="assistant-heading" className="section-heading">
+          AI Companion (experimental)
+        </h3>
+        <AiCompanion contexts={contexts} client={assistantClient} now={now} />
       </section>
     </div>
   );
